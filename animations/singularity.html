@@ -349,8 +349,18 @@
             // 5. Draw Front Particles (The near side of the disk)
             frontParticles.forEach(p => p.draw());
 
-            requestAnimationFrame(animate);
+            reqId = requestAnimationFrame(animate);
         }
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+            } else {
+                animate();
+            }
+        });
 
         window.addEventListener('resize', init);
         init();

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction-Diffusion: Gray-Scott</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            image-rendering: pixelated;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            text-shadow: 0 1px 2px #000;
+        }
+
+        h1 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin: 0;
+        }
+
+        .data {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="ui">
+        <h1>Morphogenesis</h1>
+        <div class="data">Algorithm: Gray-Scott Model</div>
+        <div class="data">f=0.055 // k=0.062</div>
+    </div>
+    <canvas id="c"></canvas>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        // Grid Dimensions (Upscaled for aesthetics)
+        const gridW = 200;
+        const gridH = 200;
+
+        // Arrays
+        // grid[x][y][0] = A, grid[x][y][1] = B
+        let grid = [];
+        let next = [];
+
+        // Parameters (Coral)
+        const dA = 1.0;
+        const dB = 0.5;
+        const feed = 0.055;
+        const k = 0.062;
+        const dt = 1.0;
+
+        let width, height;
+
+        function init() {
+            // Internal logic dimensions
+            canvas.width = gridW;
+            canvas.height = gridH;
+
+            // Init Arrays
+            grid = new Array(gridW).fill(0).map(() => new Array(gridH).fill(0).map(() => ({ a: 1, b: 0 })));
+            next = new Array(gridW).fill(0).map(() => new Array(gridH).fill(0).map(() => ({ a: 1, b: 0 })));
+
+            // Seed 
+            seed(gridW / 2, gridH / 2, 10);
+
+            // Random spots
+            for (let i = 0; i < 5; i++) {
+                seed(Math.random() * gridW, Math.random() * gridH, 5);
+            }
+        }
+
+        function seed(x, y, r) {
+            for (let i = Math.floor(x - r); i < Math.floor(x + r); i++) {
+                for (let j = Math.floor(y - r); j < Math.floor(y + r); j++) {
+                    if (i >= 0 && i < gridW && j >= 0 && j < gridH) {
+                        grid[i][j].b = 1;
+                    }
+                }
+            }
+        }
+
+        function swap() {
+            let temp = grid;
+            grid = next;
+            next = temp;
+        }
+
+        function laplacian(x, y, chem) {
+            let sum = 0;
+
+            // 3x3 Convolution
+            // Center -1
+            // Orthogonal 0.2
+            // Diagonal 0.05
+
+            /*
+            0.05  0.2  0.05
+            0.2  -1    0.2
+            0.05  0.2  0.05
+            */
+
+            // Simple loop
+            sum += grid[x][y][chem] * -1;
+
+            sum += grid[x - 1][y][chem] * 0.2;
+            sum += grid[x + 1][y][chem] * 0.2;
+            sum += grid[x][y - 1][chem] * 0.2;
+            sum += grid[x][y + 1][chem] * 0.2;
+
+            sum += grid[x - 1][y - 1][chem] * 0.05;
+            sum += grid[x + 1][y - 1][chem] * 0.05;
+            sum += grid[x + 1][y + 1][chem] * 0.05;
+            sum += grid[x - 1][y + 1][chem] * 0.05;
+
+            return sum;
+        }
+
+        // Optimization: Inline neighbors logic instead of function call for speed
+
+        function update() {
+            for (let x = 1; x < gridW - 1; x++) {
+                for (let y = 1; y < gridH - 1; y++) {
+                    let a = grid[x][y].a;
+                    let b = grid[x][y].b;
+
+                    // Laplacian calculation unrolled
+                    // Neighbors
+                    // Note: Could wrap edges for Toroid?
+
+                    // Weights
+                    // Center: -1
+                    // Adj: 0.2
+                    // Diag: 0.05
+
+                    let lapA = 0;
+                    lapA += a * -1;
+                    lapA += grid[x + 1][y].a * 0.2;
+                    lapA += grid[x - 1][y].a * 0.2;
+                    lapA += grid[x][y + 1].a * 0.2;
+                    lapA += grid[x][y - 1].a * 0.2;
+                    lapA += grid[x + 1][y + 1].a * 0.05;
+                    lapA += grid[x - 1][y + 1].a * 0.05;
+                    lapA += grid[x + 1][y - 1].a * 0.05;
+                    lapA += grid[x - 1][y - 1].a * 0.05;
+
+                    let lapB = 0;
+                    lapB += b * -1;
+                    lapB += grid[x + 1][y].b * 0.2;
+                    lapB += grid[x - 1][y].b * 0.2;
+                    lapB += grid[x][y + 1].b * 0.2;
+                    lapB += grid[x][y - 1].b * 0.2;
+                    lapB += grid[x + 1][y + 1].b * 0.05;
+                    lapB += grid[x - 1][y + 1].b * 0.05;
+                    lapB += grid[x + 1][y - 1].b * 0.05;
+                    lapB += grid[x - 1][y - 1].b * 0.05;
+
+                    // Reaction
+                    let abb = a * b * b;
+
+                    // Gray-Scott formulas
+                    let newA = a + (dA * lapA - abb + feed * (1 - a)) * dt;
+                    let newB = b + (dB * lapB + abb - (k + feed) * b) * dt;
+
+                    // Clamp
+                    next[x][y].a = Math.min(Math.max(newA, 0), 1);
+                    next[x][y].b = Math.min(Math.max(newB, 0), 1);
+                }
+            }
+            swap();
+        }
+
+        function draw() {
+            // Speed up simulation
+            for (let i = 0; i < 10; i++) update();
+
+            const imgData = ctx.getImageData(0, 0, gridW, gridH);
+            const data = imgData.data;
+
+            for (let x = 0; x < gridW; x++) {
+                for (let y = 0; y < gridH; y++) {
+                    // Map to 1D Array
+                    let index = (x + y * gridW) * 4;
+
+                    let a = grid[x][y].a;
+                    let b = grid[x][y].b;
+
+                    // Visualization: B - A
+                    let c = Math.floor((a - b) * 255);
+                    c = Math.min(255, Math.max(0, c));
+
+                    // Brutalist/Organic
+                    // Black/White or Accent?
+                    // Let's do Heatmap style for "Biological" feel?
+                    // Or keep it stark for Brutalist. 
+                    // Let's do White = A, Black = B (Void)
+
+                    // Or B concentration in color:
+                    // let color = grid[x][y].b * 255;
+
+                    // Let's try: A=1, B=0 -> White. A=0, B=1 -> Black. 
+                    // Reaction creates B (spots). So spots are Black.
+
+                    data[index + 0] = c;
+                    data[index + 1] = c;
+                    data[index + 2] = c;
+                    data[index + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+
+            reqId = requestAnimationFrame(draw);
+        }
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+            } else {
+                draw();
+            }
+        });
+
+        // Interaction
+        let isDrawing = false;
+
+        function addChemical(cx, cy) {
+            // Scale CSS coords to Canvas coords
+            const rect = canvas.getBoundingClientRect();
+            // Scale factor? canvas is small (200), style is big (vw/vh)
+            const sx = gridW / rect.width;
+            const sy = gridH / rect.height;
+
+            let x = Math.floor((cx - rect.left) * sx);
+            let y = Math.floor((cy - rect.top) * sy);
+
+            seed(x, y, 5);
+        }
+
+        window.addEventListener('mousedown', e => {
+            isDrawing = true;
+            addChemical(e.clientX, e.clientY);
+        });
+        window.addEventListener('mouseup', () => isDrawing = false);
+        window.addEventListener('mousemove', e => {
+            if (isDrawing) addChemical(e.clientX, e.clientY);
+        });
+
+        // Touch Support
+        window.addEventListener('touchstart', e => {
+            isDrawing = true;
+            addChemical(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => isDrawing = false);
+        window.addEventListener('touchmove', e => {
+            if (isDrawing) addChemical(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault();
+        }, { passive: false });
+
+        init();
+        draw();
+
+    </script>
+</body>
+
+</html>

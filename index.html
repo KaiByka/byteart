@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BYTEART // ARCHIVE</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -17,6 +18,8 @@
             --grid: #333333;
             --accent: #ff0000;
             /* System Error Red */
+            --term: #00ff00;
+            /* Terminal Green */
         }
 
         * {
@@ -55,6 +58,7 @@
             font-weight: 700;
             letter-spacing: -1px;
             text-transform: uppercase;
+            cursor: default;
         }
 
         .meta-block {
@@ -74,12 +78,11 @@
 
         main {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             grid-auto-rows: 400px;
-            /* No Gap - Borders handled by children */
         }
 
-        /* CARD BLOCK */
+        /* CARD BLOCK - Converted to DIV for dual actions */
         .block {
             border-right: 1px solid var(--grid);
             border-bottom: 1px solid var(--grid);
@@ -92,6 +95,7 @@
             color: var(--fg);
             transition: all 0.1s linear;
             background: var(--bg);
+            cursor: pointer;
         }
 
         .block:hover {
@@ -108,6 +112,12 @@
             text-transform: uppercase;
         }
 
+        .header-end {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .id-tag {
             border: 1px solid var(--grid);
             padding: 4px 8px;
@@ -115,6 +125,22 @@
 
         .block:hover .id-tag {
             border-color: var(--bg);
+        }
+
+        /* SOURCE BUTTON */
+        .src-btn {
+            font-size: 10px;
+            opacity: 0;
+            /* Hidden by default */
+            font-weight: bold;
+        }
+
+        .src-btn:hover {
+            text-decoration: underline;
+        }
+
+        .block:hover .src-btn {
+            opacity: 1;
         }
 
         h2 {
@@ -149,6 +175,74 @@
             content: ' ->';
         }
 
+        /* MODAL (HEX DUMP) */
+        #term-modal {
+            display: none;
+            /* Hidden */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        #term-window {
+            width: 800px;
+            height: 600px;
+            background: #000;
+            border: 1px solid var(--term);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+        }
+
+        #term-head {
+            background: var(--term);
+            color: #000;
+            padding: 5px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        #term-body {
+            padding: 20px;
+            flex: 1;
+            overflow: auto;
+            color: var(--term);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            white-space: pre;
+        }
+
+        #close-btn {
+            cursor: pointer;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
         /* Mobile */
         @media (max-width: 800px) {
             .container {
@@ -161,12 +255,19 @@
             }
 
             main {
-                grid-template-columns: 1fr;
-                border-left: 1px solid var(--grid);
+                grid-template-columns: 100%;
+                border-left: none;
+                border-top: 1px solid var(--grid);
+                /* Ensure separation if needed, though aside has bottom */
             }
 
             h2 {
                 font-size: 32px;
+            }
+
+            #term-window {
+                width: 95%;
+                height: 80%;
             }
         }
     </style>
@@ -177,17 +278,17 @@
     <div class="container">
 
         <aside>
-            <div class="brand">ByteArt.dev</div>
+            <div class="brand glitch" data-text="ByteArt.dev">ByteArt.dev</div>
 
             <div class="meta-block">
                 <span>SYSTEM STATUS</span>
-                ONLINE // v2.3.0<br>
-                LOC: US-EAST-1
+                ONLINE // v2.4.0<br>
+                <span id="sys-clock" style="color:var(--accent)">--:--:--</span>
             </div>
 
             <div class="meta-block">
                 <span>MANIFEST</span>
-                5 EXPERIMENTS<br>
+                11 EXPERIMENTS<br>
                 TYPE: GENERATIVE<br>
                 LANG: JS/CANVAS
             </div>
@@ -201,82 +302,491 @@
         <main>
 
             <!-- Singularity -->
-            <a href="animations/singularity.html" class="block">
+            <div class="block" data-href="animations/singularity.html">
                 <div class="block-header">
                     <span>Simulation</span>
-                    <span class="id-tag">EXP_05</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/singularity.html">[SRC]</span>
+                        <span class="id-tag">EXP_05</span>
+                    </div>
                 </div>
                 <div>
-                    <h2>SINGULARITY</h2>
+                    <h2 class="glitch" data-text="SINGULARITY">SINGULARITY</h2>
                     <p>Relativistic accretion disk simulation. Doppler beaming. Gravitational lensing.</p>
                 </div>
                 <div class="action">Initialize</div>
-            </a>
+            </div>
 
             <!-- Fibonacci -->
-            <a href="animations/fibonacci.html" class="block">
+            <div class="block" data-href="animations/fibonacci.html">
                 <div class="block-header">
                     <span>Nature</span>
-                    <span class="id-tag">EXP_04</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/fibonacci.html">[SRC]</span>
+                        <span class="id-tag">EXP_04</span>
+                    </div>
                 </div>
                 <div>
-                    <h2>PHYLLOTAXIS</h2>
+                    <h2 class="glitch" data-text="PHYLLOTAXIS">PHYLLOTAXIS</h2>
                     <p>The Golden Angle. Interactive chaos vs order exploration.</p>
                 </div>
                 <div class="action">Execute</div>
-            </a>
+            </div>
 
-            <!-- Wolfram -->
-            <a href="animations/wolfram.html" class="block">
+            <!-- Reaction Diffusion -->
+            <div class="block" data-href="animations/reaction_diffusion.html">
                 <div class="block-header">
-                    <span>Automata</span>
-                    <span class="id-tag">EXP_03</span>
+                    <span>Biology</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/reaction_diffusion.html">[SRC]</span>
+                        <span class="id-tag">EXP_07</span>
+                    </div>
                 </div>
                 <div>
-                    <h2>RULE 30</h2>
+                    <h2 class="glitch" data-text="MORPHOGENESIS">MORPHOGENESIS</h2>
+                    <p>Gray-Scott Reaction-Diffusion. Organic pattern formation simulation.</p>
+                </div>
+                <div class="action">Growth</div>
+            </div>
+
+            <!-- Wolfram -->
+            <div class="block" data-href="animations/wolfram.html">
+                <div class="block-header">
+                    <span>Automata</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/wolfram.html">[SRC]</span>
+                        <span class="id-tag">EXP_03</span>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="glitch" data-text="RULE 30">RULE 30</h2>
                     <p>Stephen Wolfram's class 4 automata. Rhombic Hexecontahedron geometry.</p>
                 </div>
                 <div class="action">Compute</div>
-            </a>
+            </div>
 
             <!-- Radio -->
-            <a href="animations/radio.html" class="block">
+            <div class="block" data-href="animations/radio.html">
                 <div class="block-header">
                     <span>Audio</span>
-                    <span class="id-tag">EXP_02</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/radio.html">[SRC]</span>
+                        <span class="id-tag">EXP_02</span>
+                    </div>
                 </div>
                 <div>
-                    <h2>WAVEFORM</h2>
+                    <h2 class="glitch" data-text="WAVEFORM">WAVEFORM</h2>
                     <p>Electromagnetic interference patterns. Procedural audio synthesis.</p>
                 </div>
                 <div class="action">Tune</div>
-            </a>
+            </div>
 
             <!-- Mathematica -->
-            <a href="animations/mathematica.html" class="block">
+            <div class="block" data-href="animations/mathematica.html">
                 <div class="block-header">
                     <span>Geometry</span>
-                    <span class="id-tag">EXP_01</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/mathematica.html">[SRC]</span>
+                        <span class="id-tag">EXP_01</span>
+                    </div>
                 </div>
                 <div>
-                    <h2>MAURER</h2>
+                    <h2 class="glitch" data-text="MAURER">MAURER</h2>
                     <p>Parametric rose curves. Mathematical connectivity patterns.</p>
                 </div>
                 <div class="action">Draw</div>
-            </a>
+            </div>
 
-            <!-- Placeholder for Grid Balance -->
-            <div class="block" style="cursor: default; background: #050505;">
-                <div class="block-header"><span>Upcoming</span> <span class="id-tag">---</span></div>
-                <div style="opacity: 0.3; justify-self: center; align-self: center;">
-                    [ EMPTY SLOT ]
+            <!-- Lorenz Attractor -->
+            <div class="block" data-href="animations/lorenz.html">
+                <div class="block-header">
+                    <span>Chaos</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/lorenz.html">[SRC]</span>
+                        <span class="id-tag">EXP_06</span>
+                    </div>
                 </div>
-                <div></div>
+                <div>
+                    <h2 class="glitch" data-text="LORENZ">LORENZ</h2>
+                    <p>Strange Attractor. The Butterfly Effect.</p>
+                </div>
+                <div class="action">Simulate</div>
+            </div>
+
+            <!-- Fluid Dynamics -->
+            <div class="block" data-href="animations/fluid.html">
+                <div class="block-header">
+                    <span>Physics</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/fluid.html">[SRC]</span>
+                        <span class="id-tag">EXP_08</span>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="glitch" data-text="FLUID">FLUID</h2>
+                    <p>Real-time Navier-Stokes solver. Stable Fluids algorithm.</p>
+                </div>
+                <div class="action">Inject</div>
+            </div>
+
+            <!-- Gradient (Calculus) -->
+            <div class="block" data-href="animations/gradient.html">
+                <div class="block-header">
+                    <span>Math</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/gradient.html">[SRC]</span>
+                        <span class="id-tag">EXP_09</span>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="glitch" data-text="GRADIENT">GRADIENT</h2>
+                    <p>Vector calculus. Field of derivatives visualizing invisible topology.</p>
+                </div>
+                <div class="action">Analyze</div>
+            </div>
+
+            <!-- Relativity (Physics) -->
+            <div class="block" data-href="animations/relativity.html">
+                <div class="block-header">
+                    <span>Physics</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/relativity.html">[SRC]</span>
+                        <span class="id-tag">EXP_10</span>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="glitch" data-text="RELATIVITY">RELATIVITY</h2>
+                    <p>Matter to Energy conversion. Critical mass simulation. E=mc²</p>
+                </div>
+                <div class="action">Destabilize</div>
+            </div>
+
+            <!-- Quantum (Physics) -->
+            <div class="block" data-href="animations/quantum.html">
+                <div class="block-header">
+                    <span>Quantum</span>
+                    <div class="header-end">
+                        <span class="src-btn" data-src="animations/quantum.html">[SRC]</span>
+                        <span class="id-tag">EXP_11</span>
+                    </div>
+                </div>
+                <div>
+                    <h2 class="glitch" data-text="QUANTUM">QUANTUM</h2>
+                    <p>Superposition & Entanglement. Wave function collapse upon observation.</p>
+                </div>
+                <div class="action">Observe</div>
             </div>
 
         </main>
     </div>
 
+    <!-- BOOT SEQUENCE OVERLAY -->
+    <div id="boot"
+        style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; color:#fff; font-family:'JetBrains Mono', monospace; padding:20px; z-index:9999; display:flex; flex-direction:column; justify-content:flex-end; font-size:12px; pointer-events:none;">
+        <div id="boot-log" style="display:flex; flex-direction:column-reverse;"></div>
+    </div>
+
+    <!-- HEX DUMP MODAL -->
+    <div id="term-modal">
+        <div id="term-window">
+            <div id="term-head">
+                <span>SOURCE_CODE_VIEWER // V1.0</span>
+                <span id="close-btn">[X]</span>
+            </div>
+            <div id="term-body" class="scrollbar">
+                <!-- Content injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CLOCK ---
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toISOString().split('T')[1].split('.')[0] + " UTC";
+            const el = document.getElementById('sys-clock');
+            if (el) el.innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- 2. AUDIO ENGINE ---
+        const AudioSys = {
+            ctx: null,
+            init: function () {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                // Always try to resume if suspended
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playClick: function () {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.05);
+
+                gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            },
+            playHover: function () {
+                if (!this.ctx) return;
+                // Double check state
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.02, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.03);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.03);
+            }
+        };
+
+        // Global unlock and interaction sound
+        document.addEventListener('click', () => {
+            AudioSys.init();
+            AudioSys.playClick();
+        });
+
+        // --- 3. NAVIGATION & INTERACTIONS ---
+        document.querySelectorAll('.block').forEach(b => {
+            // Hover Audio
+            b.addEventListener('mouseenter', () => {
+                AudioSys.init();
+                AudioSys.playHover();
+            });
+
+            // Navigation
+            b.addEventListener('click', (e) => {
+                // If clicked source button, don't navigate
+                if (e.target.classList.contains('src-btn')) return;
+
+                AudioSys.init();
+                // AudioSys.playClick(); // Handled by global listener via bubbling
+
+                // Delay to allow audio to play
+                setTimeout(() => {
+                    window.location.href = b.dataset.href;
+                }, 150);
+            });
+        });
+
+        // --- 4. GLITCH EFFECT ---
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+        document.querySelectorAll('.glitch').forEach(el => {
+            const original = el.dataset.text;
+            let interval = null;
+
+            el.addEventListener('mouseenter', () => {
+                let iteration = 0;
+                clearInterval(interval);
+
+                interval = setInterval(() => {
+                    el.innerText = original
+                        .split("")
+                        .map((letter, index) => {
+                            if (index < iteration) {
+                                return original[index];
+                            }
+                            return chars[Math.floor(Math.random() * chars.length)];
+                        })
+                        .join("");
+
+                    if (iteration >= original.length) {
+                        clearInterval(interval);
+                    }
+
+                    iteration += 1 / 3;
+                }, 30);
+            });
+
+            // Safety restore on leave (sometimes hover out happens fast)
+            el.addEventListener('mouseleave', () => {
+                clearInterval(interval);
+                el.innerText = original;
+            });
+        });
+
+        // --- 5. SOURCE VIEWER ---
+        const modal = document.getElementById('term-modal');
+        const termBody = document.getElementById('term-body');
+        const closeBtn = document.getElementById('close-btn');
+
+        document.querySelectorAll('.src-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Don't trigger block nav
+                const url = btn.dataset.src;
+
+                // Open Modal
+                modal.style.display = 'flex';
+                termBody.innerText = "FETCHING SOURCE DATA...\nDownloading " + url + "...";
+
+                // Check for file protocol restriction
+                if (window.location.protocol === 'file:') {
+                    termBody.innerText = "ERROR: Cannot fetch source code via file protocol.\nSecurity restrictions prevent reading local files directly.\nPlease run this site via a local server (e.g. VS Code Live Server).";
+                    return;
+                }
+
+                // Fetch
+                fetch(url)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                        return res.text();
+                    })
+                    .then(html => {
+                        // Match content inside script tags (robust)
+                        const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+                        if (scriptMatch && scriptMatch[1]) {
+                            // Indent cleanup - remove first level of indentation if common
+                            const code = scriptMatch[1].replace(/^\n/, '');
+                            termBody.innerText = code;
+                        } else {
+                            termBody.innerText = "NO SCRIPT TAG FOUND IN TARGET.";
+                        }
+                    })
+                    .catch(err => {
+                        termBody.innerText = "ERROR LOADING SOURCE:\n" + err;
+                    });
+            });
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // --- 6. BOOT SEQUENCE ---
+        const bootEl = document.getElementById('boot');
+        const logEl = document.getElementById('boot-log');
+        const logs = [
+            "SYSTEM READY.",
+            "INITIALIZING NEURAL LINK...",
+            "LOADING ASSETS...",
+            "MOUNTING /DEV/SDA1... OK",
+            "CHECKING MEMORY... OK",
+            "BYTEART KERNEL V2.4.0"
+        ];
+
+        if (sessionStorage.getItem('booted')) {
+            bootEl.style.display = 'none';
+        } else {
+            let line = 0;
+            const interval = setInterval(() => {
+                const div = document.createElement('div');
+                div.innerText = "> " + logs[line];
+                logEl.insertBefore(div, logEl.firstChild);
+
+                line++;
+                if (line >= logs.length) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        bootEl.style.opacity = 0;
+                        bootEl.style.transition = 'opacity 0.5s';
+                        setTimeout(() => bootEl.style.display = 'none', 500);
+                        sessionStorage.setItem('booted', 'true');
+                    }, 500);
+                }
+            }, 100);
+        }
+
+        // --- 7. SCREENSAVER PROTOCOL ---
+        let idleTime = 0;
+        let screensaverActive = false;
+
+        // Timer
+        setInterval(() => {
+            idleTime++;
+            if (idleTime > 30 && !screensaverActive) { // 30 seconds
+                activateScreensaver();
+            }
+        }, 1000);
+
+        function resetIdle() {
+            idleTime = 0;
+            if (screensaverActive) {
+                deactivateScreensaver();
+            }
+        }
+
+        function activateScreensaver() {
+            screensaverActive = true;
+
+            // Iframe
+            const saver = document.createElement('iframe');
+            saver.id = 'screensaver';
+            saver.src = 'animations/dream.html';
+            saver.style.position = 'fixed';
+            saver.style.top = '0';
+            saver.style.left = '0';
+            saver.style.width = '100vw';
+            saver.style.height = '100vh';
+            saver.style.border = 'none';
+            saver.style.zIndex = '9998';
+            saver.style.transition = 'opacity 1s';
+            saver.style.opacity = '0';
+
+            // Input Capture Layer (Transparent Div on top of iframe)
+            // This ensures events bubble to window instead of being eaten by iframe
+            const blocker = document.createElement('div');
+            blocker.id = 'screensaver-overlay';
+            blocker.style.position = 'fixed';
+            blocker.style.top = '0';
+            blocker.style.left = '0';
+            blocker.style.width = '100vw';
+            blocker.style.height = '100vh';
+            blocker.style.zIndex = '9999';
+            blocker.style.background = 'transparent';
+
+            document.body.appendChild(saver);
+            document.body.appendChild(blocker);
+
+            // Fade in
+            requestAnimationFrame(() => {
+                saver.style.opacity = '1';
+            });
+        }
+
+        function deactivateScreensaver() {
+            screensaverActive = false;
+            const saver = document.getElementById('screensaver');
+            const blocker = document.getElementById('screensaver-overlay');
+
+            if (saver) {
+                saver.style.opacity = '0';
+                setTimeout(() => {
+                    if (saver.parentNode) saver.parentNode.removeChild(saver);
+                }, 1000);
+            }
+            // Remove blocker immediately to restore interaction
+            if (blocker && blocker.parentNode) {
+                blocker.parentNode.removeChild(blocker);
+            }
+        }
+
+        // Reset inputs
+        window.addEventListener('mousemove', resetIdle);
+        window.addEventListener('click', resetIdle);
+        window.addEventListener('keydown', resetIdle);
+        window.addEventListener('touchstart', resetIdle);
+        window.addEventListener('scroll', resetIdle);
+    </script>
 </body>
 
 </html>

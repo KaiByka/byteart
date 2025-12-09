@@ -150,6 +150,30 @@
             angle = manualAngle;
         });
 
+        // Touch Support
+        window.addEventListener('touchstart', e => {
+            isDragging = true;
+            mode = 'manual';
+            manualAngle = angle;
+            updateButtons(''); // Deselect buttons
+            lastMouseX = e.touches[0].clientX;
+            document.getElementById('mode-val').innerText = "Manual Control (Touch)";
+            e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => isDragging = false);
+        window.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            const dx = e.touches[0].clientX - lastMouseX;
+            lastMouseX = e.touches[0].clientX;
+
+            // Fine control
+            manualAngle += dx * 0.005;
+            targetAngle = manualAngle;
+            angle = manualAngle;
+            e.preventDefault();
+        }, { passive: false });
+
         function drawPoint(n, currentAngle) {
             // Formula: r = c * sqrt(n)
             // theta = n * angle
@@ -281,8 +305,18 @@
                 ctx.fillText("Click & Drag horizontally to explore chaos vs order", width / 2, height - 80);
             }
 
-            requestAnimationFrame(animate);
+            reqId = requestAnimationFrame(animate);
         }
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+            } else {
+                animate();
+            }
+        });
 
         // Controls
         document.getElementById('btn-golden').onclick = () => {

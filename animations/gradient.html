@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Calculus: Gradient Vector Field</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #050505;
+            font-family: 'Courier New', monospace;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            pointer-events: none;
+            mix-blend-mode: exclusion;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .sub {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="ui">
+        <h1>Gradient Field</h1>
+        <div class="sub">&nabla;f(x,y) // Differential Calculus</div>
+    </div>
+    <canvas id="c"></canvas>
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let time = 0;
+
+        // Grid setup
+        const spacing = 20;
+        let cols, rows;
+
+        // Interaction
+        let mouseX = 0, mouseY = 0;
+        let isMouseActive = false;
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            cols = Math.ceil(width / spacing);
+            rows = Math.ceil(height / spacing);
+        }
+
+        // The Scalar Field f(x,y)
+        // We don't visualize this directly, we visualize its slope (derivative)
+        function scalarField(x, y, t) {
+            // A moving landscape of sine waves
+            const v1 = Math.sin(x * 0.01 + t * 0.02); // Slower frequency for larger grid
+            const v2 = Math.cos(y * 0.01 - t * 0.03);
+            const v3 = Math.sin((x + y) * 0.005 + t * 0.01);
+
+            // Mouse interaction: Add a "well" or "hill"
+            let mouseInfluence = 0;
+            if (isMouseActive) {
+                const dx = x - mouseX;
+                const dy = y - mouseY;
+                const distSq = dx * dx + dy * dy;
+                // Add a gravity well
+                mouseInfluence = -5000 / (distSq + 100);
+            }
+
+            return (v1 + v2 + v3) * 50 + mouseInfluence * 20;
+        }
+
+        function animate() {
+            time++;
+
+            // Fade background slightly for trails? No, clean redraw for this one.
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.lineWidth = 1.5;
+
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    const x = i * spacing;
+                    const y = j * spacing;
+
+                    // CALCULATE DERIVATIVE (Numerical Differentiation)
+                    // limit as h -> 0
+                    const h = 1; // small step
+                    const f = scalarField(x, y, time);
+                    const f_dx = scalarField(x + h, y, time);
+                    const f_dy = scalarField(x, y + h, time);
+
+                    // Partial Derivatives
+                    const d_dx = (f_dx - f) / h;
+                    const d_dy = (f_dy - f) / h;
+
+                    // Gradient Vector = <d_dx, d_dy>
+                    // This points in direction of steepest ascent
+
+                    const angle = Math.atan2(d_dy, d_dx);
+                    const magnitude = Math.sqrt(d_dx * d_dx + d_dy * d_dy);
+
+                    // Visualize
+                    const len = Math.min(spacing * 0.8, magnitude * 5);
+                    const cx = x + spacing / 2;
+                    const cy = y + spacing / 2;
+
+                    // Color based on steepness (magnitude of derivative)
+                    // Flat = Brighter Cyan/Blue, Steep = White/Red
+                    const intensity = Math.min(255, magnitude * 100);
+                    const r = intensity;
+                    const g = Math.min(255, intensity * 0.5 + 50); // Add base green
+                    const b = 255; // Always keep blue high for visibility
+
+                    ctx.strokeStyle = `rgb(${r},${g},${b})`;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(cx + Math.cos(angle) * len, cy + Math.sin(angle) * len);
+                    ctx.stroke();
+
+                    // Optional: Draw Arrowhead for vector feel
+                    if (magnitude > 0.5) {
+                        // Simple dot at end
+                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                        ctx.fillRect(cx + Math.cos(angle) * len - 1, cy + Math.sin(angle) * len - 1, 2, 2);
+                    }
+                }
+            }
+
+            reqId = requestAnimationFrame(animate);
+        }
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+            } else {
+                animate();
+            }
+        });
+
+        window.addEventListener('resize', init);
+        window.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            isMouseActive = true;
+        });
+        window.addEventListener('touchmove', e => {
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+            isMouseActive = true;
+        });
+
+        init();
+        animate();
+    </script>
+</body>
+
+</html>

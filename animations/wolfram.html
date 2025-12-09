@@ -310,8 +310,18 @@
                 ctx.fillText(s, x, y);
             }
 
-            requestAnimationFrame(animate);
+            reqId = requestAnimationFrame(animate);
         }
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+            } else {
+                animate();
+            }
+        });
 
         window.addEventListener('resize', resize);
         resize();

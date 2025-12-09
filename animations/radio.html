@@ -551,8 +551,22 @@
             drawReceiver();
             drawSpectrum();
 
-            requestAnimationFrame(animate);
+            reqId = requestAnimationFrame(animate);
         }
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+                // Optional: suspend audio? AudioContext usually continues in background, but chrome might throttle.
+                // Ideally we suspend audio context to save battery.
+                if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
+            } else {
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                animate();
+            }
+        });
 
         // Interactions
         window.addEventListener('resize', resize);

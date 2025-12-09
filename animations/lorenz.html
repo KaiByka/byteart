@@ -212,7 +212,7 @@
                 camRotY += 0.003;
             }
 
-            requestAnimationFrame(animate);
+            reqId = requestAnimationFrame(animate);
         }
 
         // Interaction
@@ -234,7 +234,38 @@
             camRotX += dy * 0.01;
         });
 
+        // Touch Support
+        window.addEventListener('touchstart', e => {
+            isDragging = true;
+            lastX = e.touches[0].clientX;
+            lastY = e.touches[0].clientY;
+            e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => isDragging = false);
+        window.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            const dx = e.touches[0].clientX - lastX;
+            const dy = e.touches[0].clientY - lastY;
+            lastX = e.touches[0].clientX;
+            lastY = e.touches[0].clientY;
+
+            camRotY += dx * 0.01;
+            camRotX += dy * 0.01;
+            e.preventDefault();
+        }, { passive: false });
+
         window.addEventListener('resize', init);
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+            } else {
+                animate();
+            }
+        });
 
         init();
         animate();
