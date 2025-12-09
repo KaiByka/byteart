@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singularity</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .hud {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 100;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            margin: 0 0 5px 0;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .data {
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="hud">
+        <h1>Gargantua</h1>
+        <div class="data">MASS: 4.3M ☉ // SPIN: 0.98c // INFLOW: CRITICAL</div>
+    </div>
+    <canvas id="c"></canvas>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        // Settings
+        let width, height;
+        let time = 0;
+        const particleCount = 4000;
+        const starCount = 800;
+
+        let bhRadius = 80; // Event Horizon Radius
+        let diskMin = 140;
+        let diskMax = 500;
+
+        // Entities
+        let stars = [];
+        let particles = [];
+        let noiseBuffer = [];
+
+        class Star {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = (Math.random() - 0.5) * width * 3;
+                this.y = (Math.random() - 0.5) * height * 3;
+                this.z = Math.random() * 2 + 0.5; // Depth
+                this.size = Math.random() * 1.5;
+                this.ox = this.x;
+                this.oy = this.y;
+            }
+            draw() {
+                // Gravitational Lensing Calculation
+                const dx = this.x;
+                const dy = this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                // Einstein Ring Radius approximation
+                const einsteinR = bhRadius * 2.5;
+
+                // Displacement vector
+                let ux = dx;
+                let uy = dy;
+
+                // Lensing formula approximation: alpha = 4GM/c^2 * 1/b
+                // Shift star Position AWAY from center based on inverse distance
+                // If star is behind BH (close to center), it gets pushed out to Einstein Ring
+
+                let lensFactor = 0;
+                if (dist > 10) {
+                    lensFactor = (einsteinR * einsteinR) / dist;
+                }
+
+                // Calculate new position
+                // P_visual = P_real + (Einstein^2 / |P_real|) * Direction
+                const lx = this.x + (this.x / dist) * lensFactor;
+                const ly = this.y + (this.y / dist) * lensFactor;
+
+                // Hide if behind event horizon (simple cull)
+                if (dist < bhRadius * 0.8) return;
+
+                // Screen transform
+                const sx = width / 2 + lx;
+                const sy = height / 2 + ly;
+
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.3})`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                // Slow drift
+                this.x += 0.05 * this.z;
+                if (this.x > width * 1.5) this.x = -width * 1.5;
+            }
+        }
+
+        class DiskParticle {
+            constructor() {
+                this.reset();
+                // Scatter initial positions
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            reset() {
+                this.angle = Math.random() * Math.PI * 2;
+                // Distribute more density near center
+                const r = Math.random();
+                this.dist = diskMin + r * r * (diskMax - diskMin);
+
+                this.speed = Math.sqrt(80000 / this.dist) * 0.05; // Keplerian-ish
+                this.size = Math.random() * 2 + 0.5;
+
+                // Orbital inclination (disk is effectively 2D, but we project tilt)
+                this.yOffset = (Math.random() - 0.5) * 10 * (1 - r); // Thicker near center? No, usually thinner.
+            }
+
+            update() {
+                this.angle -= this.speed;
+                // Spiral in slowly
+                this.dist -= 0.1;
+                if (this.dist < bhRadius * 1.1) {
+                    this.reset();
+                    this.dist = diskMax;
+                }
+            }
+
+            draw() {
+                // Projection: Tilted Disk
+                const tilt = 0.3; // 
+
+                // 3D coords
+                const x3 = Math.cos(this.angle) * this.dist;
+                const z3 = Math.sin(this.angle) * this.dist; // Depth
+                const y3 = this.yOffset + z3 * Math.sin(tilt); // Tilt effect on Y
+
+                // Flattened X is x3
+                // Flattened Y is z3 * cos(tilt)
+
+                const px = x3;
+                const py = z3 * tilt * 0.6; // Flatten circle to ellipse
+
+                // Lensing Logic for disk?
+                // Visual Order:
+                // 1. Rear of disk (z3 > 0)
+                // 2. Black Hole
+                // 3. Front of disk (z3 < 0)
+                // 4. Lensed rear of disk (visible ABOVE/BELOW black hole) <-- tricky in particle system
+
+                // Simple version: z-sorting done by main loop
+
+                // Doppler Beaming
+                // Particles moving TOWARDS us (left side usually, depending on spin) are brighter/bluer
+                // Particles moving AWAY (right side) are dimmer/redder
+
+                // Velocity X component determines beaming
+                const velX = -Math.sin(this.angle); // derivative of cos
+                const velZ = Math.cos(this.angle); // moving toward/away?
+
+                // Actually, if spinning CCW:
+                // Top (z negative) is front not quite..
+                // Let's assume left side is approaching, right is receding.
+
+                let doppler = 1 + velZ * 0.8; // Brightness multiplier
+
+                // Color Shift
+                let r = 255;
+                let g = 200 * doppler;
+                let b = 150 * doppler;
+
+                // Clamp
+                if (g > 255) g = 255; if (b > 255) b = 255;
+                if (g < 0) g = 0; if (b < 0) b = 0;
+
+                const alpha = Math.min(1, doppler) * 0.8;
+
+                // Screen Coords
+                const sx = width / 2 + px;
+                const sy = height / 2 + py;
+
+                ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, this.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Lensed "Hump" (The back of the disk visible over the top)
+                // If pixel is BEHIND black hole (z3 > 0), simple lensing duplicate
+                if (z3 < 0) { // "Behind" in typical coord system (z negative is forward? Let's say z < 0 is behind)
+                    // Wait, standard 3D: Z+ is toward cam. 
+                    // Let's say z3 > 0 is FRONT, z3 < 0 is BACK based on sin calculation
+                    // sin(0)=0 (right), sin(90)=1 (front), sin(180)=0 (left), sin(270)=-1 (back)
+
+                    // Actually let's assume z3 > 0 is BACK for logic mapping
+                }
+
+                // Fake lensing top/bottom
+                if (z3 < 0) { // The far side
+                    // Reflect Y coord drastically to show "over the top"
+                    // The closer to center, the more it pushes out
+                    const dist2d = Math.sqrt(px * px + py * py);
+                    if (dist2d > bhRadius) { // Don't lens inside
+                        // Hard to particle-lens accurately without raytracing
+                    }
+                }
+            }
+        }
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+
+            stars = [];
+            for (let i = 0; i < starCount; i++) stars.push(new Star());
+
+            particles = [];
+            for (let i = 0; i < particleCount; i++) particles.push(new DiskParticle());
+        }
+
+        function animate() {
+            time++;
+
+            // Motion Blur / Trails?
+            // Pure clear for crispness
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, width, height);
+
+            // 1. Draw Stars (Background)
+            stars.forEach(s => {
+                s.update();
+                s.draw();
+            });
+
+            // Sort particles by Z (simple painter's algo)
+            // Z determined by angle. sin(angle)>0 is front? 
+            // My DiskParticle logic: z3 = sin(angle)*dist.
+            // Tilt applied. 
+            // We want to draw BACK first (z3 < 0 or however defined)
+            // Let's rely on explicit splitting to draw BH in middle
+
+            // Split particles into Back and Front
+            // Let's define: sin(angle) < 0 is BACK (y negative in 2D projection before tilt? no z is depth)
+
+            // let's re-verify coords
+            // x = cos * dist; z = sin * dist
+            // if sin > 0, z is positive. let's say Z+ is FRONT.
+            // so we draw particles with z < 0 first.
+
+            const backParticles = [];
+            const frontParticles = [];
+
+            particles.forEach(p => {
+                p.update();
+                const z = Math.sin(p.angle) * p.dist;
+                if (z < 0) backParticles.push(p);
+                else frontParticles.push(p);
+            });
+
+            // 2. Draw Back Particles (The far side of the disk)
+            backParticles.forEach(p => p.draw());
+
+            // 3. Draw The "Lensed" Back Disk (The Halo)
+            // The back of the disk appears as a ring ABOVE and BELOW the shadow
+            // We'll fake this by drawing a transformed version of the back particles
+            backParticles.forEach(p => {
+                // Calculate "Lensed" position
+                // It maps the far-side ellipse (flat) to a circle warping around the BH
+                const x3 = Math.cos(p.angle) * p.dist;
+                const z3 = Math.sin(p.angle) * p.dist; // Negative
+
+                const origX = x3;
+                const origY = z3 * 0.3 * 0.6; // Standard project
+
+                // Warp: Points closer to BH (dist small) get pulled UP visually
+                // A simplified visual hack for the "Interstellar" halo:
+                // Just draw a secondary circle arc for the back particles
+
+                const sx = width / 2 + origX;
+                const lensY = -(origY * 3); // Invert and stretch
+                // Clip to near-center
+                const sy = height / 2 + lensY;
+
+                const alpha = 0.1;
+                ctx.fillStyle = `rgba(255, 200, 150, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(sx, sy, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 4. Draw Black Hole (Shadow) & Photon Ring
+            const cx = width / 2;
+            const cy = height / 2;
+
+            // Photon Ring (Bright, thin)
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "#ffaa00";
+            ctx.strokeStyle = "rgba(255, 200, 100, 0.9)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, bhRadius * 1.5, 0, Math.PI * 2); // Distorted photon sphere
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Event Horizon
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.arc(cx, cy, bhRadius * 1.4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner glow
+            ctx.shadowBlur = 50;
+            ctx.shadowColor = "rgba(255, 100, 50, 0.5)";
+            ctx.beginPath();
+            ctx.arc(cx, cy, bhRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 5. Draw Front Particles (The near side of the disk)
+            frontParticles.forEach(p => p.draw());
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', init);
+        init();
+        animate();
+
+    </script>
+</body>
+
+</html>

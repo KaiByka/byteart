@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaos: The Attractor</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            mix-blend-mode: difference;
+        }
+
+        h1 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin: 0;
+        }
+
+        .data {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="ui">
+        <h1>Lorenz System</h1>
+        <div class="data">σ=10.0 // ρ=28.0 // β=8/3</div>
+        <div class="data">Strange Attractor // Chaos Theory</div>
+    </div>
+    <canvas id="c"></canvas>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        // Lorenz Parameters
+        const sigma = 10;
+        const rho = 28;
+        const beta = 8 / 3;
+
+        // State
+        let x = 0.1;
+        let y = 0;
+        let z = 0;
+
+        // Trail
+        let points = [];
+        const maxPoints = 3000;
+
+        // Camera
+        let camRotX = 0;
+        let camRotY = 0;
+        let zoom = 15;
+
+        // Interaction
+        let isDragging = false;
+        let lastX, lastY;
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+
+            // Reset state if needed, but let's keep accumulating
+        }
+
+        function step() {
+            const dt = 0.005; // Time step
+
+            const dx = sigma * (y - x) * dt;
+            const dy = (x * (rho - z) - y) * dt;
+            const dz = (x * y - beta * z) * dt;
+
+            x += dx;
+            y += dy;
+            z += dz;
+
+            points.push({ x, y, z });
+            if (points.length > maxPoints) {
+                points.shift();
+            }
+        }
+
+        function project(p) {
+            // Translate to center (rotate around center of attractor approx)
+            // Attractor centers around z ~ rho-1 = 27
+            let px = p.x;
+            let py = p.y;
+            let pz = p.z - 27;
+
+            // Rotate Y
+            let tx = px * Math.cos(camRotY) - pz * Math.sin(camRotY);
+            let tz = px * Math.sin(camRotY) + pz * Math.cos(camRotY);
+            px = tx; pz = tz;
+
+            // Rotate X
+            let ty = py * Math.cos(camRotX) - pz * Math.sin(camRotX);
+            tz = py * Math.sin(camRotX) + pz * Math.cos(camRotX);
+            py = ty; pz = tz;
+
+            // Project
+            const perspective = 800;
+            const scale = perspective / (perspective + pz);
+
+            return {
+                x: width / 2 + px * zoom * scale,
+                y: height / 2 + py * zoom * scale,
+                z: pz,
+                scale: scale
+            };
+        }
+
+        function animate() {
+            // Calculate multiple steps per frame for smooth line
+            for (let i = 0; i < 5; i++) step();
+
+            // Draw
+            // Fade effect? No, crisp lines for 'Sci-Art'
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.lineWidth = 1.5;
+            // ctx.lineJoin = 'round'; // Performance hit
+
+            if (points.length > 1) {
+                // To draw gradient, we need to segment.
+                // Simple batching: Draw segments
+
+                ctx.beginPath();
+                let params = project(points[0]);
+                ctx.moveTo(params.x, params.y);
+
+                // Color based on index (time) or Z?
+                // Let's do simple white for Brutalist look, or cyan?
+                // The prompt was just "Lorenz". 
+                // Let's do a color shift based on velocity or position.
+                // Hue cycling along the trail looks nice.
+
+                // Batch drawing is faster but single color.
+                // Let's do batch strokes with gradient.
+            }
+
+            // Optimized rendering: 
+            // Draw in chunks
+            const chunkSize = 100;
+            for (let i = 0; i < points.length - 1; i += chunkSize) {
+                const end = Math.min(i + chunkSize, points.length - 1);
+
+                ctx.beginPath();
+                const pStart = project(points[i]);
+                ctx.moveTo(pStart.x, pStart.y);
+
+                for (let j = i + 1; j <= end; j++) {
+                    const p = project(points[j]);
+                    ctx.lineTo(p.x, p.y);
+                }
+
+                // Color
+                // Map 'i' to Hue
+                // Newest points (end of array) are brightest
+                const age = i / points.length; // 0 (old) to 1 (new)
+                // Let's make it look like hot plasma
+                // Hue: 200 (Blue) -> 300 (Purple) -> 60 (Yellow)
+                /*
+                let hue = 200 + age * 100;
+                let light = 30 + age * 40;
+                ctx.strokeStyle = `hsl(${hue}, 80%, ${light}%)`;
+                */
+
+                // Brutalist White/Green?
+                // Let's stick to the styling plan: 
+                // Lorenz fits "Chaos". Maybe a fiery orange/red or electric blue.
+                // Let's do Electric Cyan to White.
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.2 + age * 0.8})`;
+
+                ctx.stroke();
+            }
+
+            // Head Glow
+            const head = project(points[points.length - 1]);
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#0ff';
+            ctx.beginPath();
+            ctx.arc(head.x, head.y, 3 * head.scale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Auto rotate if not dragging
+            if (!isDragging) {
+                camRotY += 0.003;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Interaction
+        window.addEventListener('mousedown', e => {
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastX;
+            const dy = e.clientY - lastY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+
+            camRotY += dx * 0.01;
+            camRotX += dy * 0.01;
+        });
+
+        window.addEventListener('resize', init);
+
+        init();
+        animate();
+    </script>
+</body>
+
+</html>

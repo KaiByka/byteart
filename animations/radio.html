@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Radio Frequency Propagation</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --grid-color: rgba(0, 255, 136, 0.05);
+            --primary-color: #00ff88;
+            --secondary-color: #00ccff;
+            --text-color: #00ff88;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--text-color);
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
+        }
+
+        canvas {
+            display: block;
+            mix-blend-mode: screen;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            z-index: 10;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .status {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 12px;
+            color: rgba(0, 255, 136, 0.6);
+        }
+
+        #spectrum-analyzer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <div id="canvas-container">
+        <canvas id="mainCanvas"></canvas>
+        <canvas id="spectrum-analyzer"></canvas>
+        <div class="overlay"></div>
+
+        <div class="ui-layer">
+            <h1>RF Propagation Visualizer</h1>
+            <div class="status">FREQ: <span id="freq-readout">108.00</span> MHz | SIGNAL: <span
+                    id="sig-readout">-</span> dB</div>
+        </div>
+
+        <div class="controls">
+            [MOUSE] Move Receiver | [CLICK] Pulse & Init Audio
+        </div>
+    </div>
+
+    <script>
+        /**
+         * Radio Waves Animation
+         * Simulates electromagnetic field propagation, interference, and signal reception.
+         */
+
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const spectrumCanvas = document.getElementById('spectrum-analyzer');
+        const specCtx = spectrumCanvas.getContext('2d');
+
+        let width, height;
+        let mouseX = 0, mouseY = 0;
+        let time = 0;
+
+        // --- Audio Engine ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        let masterGain;
+        let droneOsc;
+        let droneGain;
+        let noiseNode;
+        let noiseGain;
+        let signalOsc;
+        let signalGain;
+        let isAudioInit = false;
+
+        const Sounds = {
+            init: () => {
+                if (isAudioInit) return;
+                try {
+                    audioCtx = new AudioContext();
+                    masterGain = audioCtx.createGain();
+                    masterGain.gain.value = 0.4;
+                    masterGain.connect(audioCtx.destination);
+
+                    // 1. Background Drone (60Hz hum + wobble)
+                    droneOsc = audioCtx.createOscillator();
+                    droneOsc.type = 'sine';
+                    droneOsc.frequency.value = 60;
+                    droneGain = audioCtx.createGain();
+                    droneGain.gain.value = 0.05;
+
+                    // Drone AM modulation (LFO)
+                    const lfo = audioCtx.createOscillator();
+                    lfo.frequency.value = 0.1;
+                    const lfoGain = audioCtx.createGain();
+                    lfoGain.gain.value = 0.05;
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(droneGain.gain);
+                    lfo.start();
+
+                    droneOsc.connect(droneGain);
+                    droneGain.connect(masterGain);
+                    droneOsc.start();
+
+                    // 2. Static / Floor Noise
+                    const bufferSize = audioCtx.sampleRate * 2;
+                    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+
+                    noiseNode = audioCtx.createBufferSource();
+                    noiseNode.buffer = buffer;
+                    noiseNode.loop = true;
+                    noiseGain = audioCtx.createGain();
+                    noiseGain.gain.value = 0.02;
+
+                    // Filter the noise (Bandpass for "radio" feel)
+                    const noiseFilter = audioCtx.createBiquadFilter();
+                    noiseFilter.type = 'bandpass';
+                    noiseFilter.frequency.value = 1000;
+                    noiseFilter.Q.value = 1;
+
+                    noiseNode.connect(noiseFilter);
+                    noiseFilter.connect(noiseGain);
+                    noiseGain.connect(masterGain);
+                    noiseNode.start();
+
+                    // 3. Signal Oscillator (Silence effectively until signal is found)
+                    signalOsc = audioCtx.createOscillator();
+                    signalOsc.type = 'sine';
+                    signalOsc.frequency.value = 440;
+                    signalGain = audioCtx.createGain();
+                    signalGain.gain.value = 0;
+                    signalOsc.connect(signalGain);
+                    signalGain.connect(masterGain);
+                    signalOsc.start();
+
+                    isAudioInit = true;
+                    console.log("Audio Initialized");
+
+                } catch (e) {
+                    console.error("Audio init failed", e);
+                }
+            },
+
+            pulse: (baseFreq) => {
+                if (!isAudioInit) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'triangle';
+                // Map visualization freq to audible pitch
+                osc.frequency.setValueAtTime(400 + (baseFreq * 5000), audioCtx.currentTime);
+
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            },
+
+            burst: () => {
+                if (!isAudioInit) return;
+                // White noise burst
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+
+                // FM chirp 
+                const osc = audioCtx.createOscillator();
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+
+                osc.connect(gain);
+                gain.connect(masterGain);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            },
+
+            updateSignal: (strength, xPos) => {
+                if (!isAudioInit) return;
+
+                // Only play "clean" signal sounds if strength is decent
+                const targetVol = Math.pow(strength, 2) * 0.15; // quadratic curve for cleaner cutin
+                signalGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.1);
+
+                // Frequency tuning simulation
+                // Map xPos to frequency spectrum 88Mhz - 108Mhz -> 200Hz - 2000Hz (audible range)
+                const freq = 200 + (xPos / width) * 1800;
+                signalOsc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.1);
+
+                // Also modulate static:
+                // If signal is weak, static is louder? Or constant floor?
+                // Let's make static react to "tuning" - more static between stations (emitters) could be complex
+                // simple version: static is constant, signal rises out of it.
+            }
+        };
+
+        // Configuration
+        const config = {
+            emitters: [],
+            particles: [], // "Data" packets
+            waves: [],
+            baseFreq: 0.02,
+            gridSize: 40
+        };
+
+        class Emitter {
+            constructor(x, y, freq) {
+                this.x = x;
+                this.y = y;
+                this.freq = freq; // Oscillation speed
+                this.phase = Math.random() * Math.PI * 2;
+                this.color = '#00ff88';
+            }
+
+            update() {
+                this.phase += this.freq;
+                // Emit wave periodically
+                if (Math.sin(this.phase) > 0.98) {
+                    waves.push(new Wave(this.x, this.y));
+                    Sounds.pulse(this.freq); // Audio Trigger
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+
+                // Pulsing glow
+                const glow = (Math.sin(this.phase) + 1) * 10;
+                ctx.shadowBlur = glow;
+                ctx.shadowColor = this.color;
+                ctx.strokeStyle = this.color;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        class Wave {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 1;
+                this.speed = 2;
+                this.maxRadius = Math.max(width, height) * 0.8;
+                this.alpha = 1;
+                this.distortion = [];
+
+                // Initialize distortion points
+                for (let i = 0; i < 360; i += 10) {
+                    this.distortion.push(0);
+                }
+            }
+
+            update() {
+                this.radius += this.speed;
+                this.alpha = 1 - (this.radius / this.maxRadius);
+
+                // Interaction with mouse (Reciever)
+                const d = Math.hypot(this.x - mouseX, this.y - mouseY);
+                // Simple interference calculation
+                // If wave edge is near mouse
+                const distToWave = Math.abs(d - this.radius);
+                if (distToWave < 100) {
+                    // "Interference"
+                }
+            }
+
+            draw(ctx) {
+                if (this.alpha <= 0) return;
+
+                ctx.beginPath();
+                // Draw circle with potential distortion
+                for (let i = 0; i <= 360; i += 2) {
+                    const rad = (i * Math.PI) / 180;
+
+                    // Modulate radius based on angle and time for "analog" drift
+                    const noise = Math.sin(i * 0.1 + time * 0.05) * 5;
+
+                    // Mouse gravity distortion
+                    let mX = this.x + Math.cos(rad) * this.radius;
+                    let mY = this.y + Math.sin(rad) * this.radius;
+
+                    const distMouse = Math.hypot(mX - mouseX, mY - mouseY);
+                    let interfere = 0;
+
+                    if (distMouse < 200) {
+                        interfere = (200 - distMouse) * 0.2 * Math.sin(distMouse * 0.5 + time * 0.5);
+                    }
+
+                    const r = this.radius + noise + interfere;
+                    const x = this.x + Math.cos(rad) * r;
+                    const y = this.y + Math.sin(rad) * r;
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+
+                ctx.closePath();
+                ctx.strokeStyle = `rgba(0, 255, 136, ${this.alpha * 0.5})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+        }
+
+        class SignalParticle {
+            constructor(wave) {
+                this.wave = wave;
+                this.angle = Math.random() * Math.PI * 2;
+                this.size = Math.random() * 2 + 1;
+            }
+
+            update() {
+                this.angle += 0.01;
+            }
+
+            draw(ctx) {
+                if (this.wave.alpha <= 0) return;
+
+                const r = this.wave.radius;
+                const x = this.wave.x + Math.cos(this.angle) * r;
+                const y = this.wave.y + Math.sin(this.angle) * r;
+
+                ctx.fillStyle = '#00ccff';
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = '#00ccff';
+                ctx.fillRect(x, y, this.size, this.size);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Arrays to hold objects
+        let emitters = [];
+        let waves = [];
+        let particles = [];
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            spectrumCanvas.width = window.innerWidth;
+            spectrumCanvas.height = 100;
+
+            // Reset emitters
+            emitters = [];
+            // Central emitter
+            emitters.push(new Emitter(width / 2, height / 2, 0.05));
+            // Satellite
+            emitters.push(new Emitter(width * 0.2, height * 0.3, 0.03));
+            emitters.push(new Emitter(width * 0.8, height * 0.7, 0.04));
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.03)';
+            ctx.lineWidth = 1;
+
+            // Standard Grid
+            for (let x = 0; x < width; x += config.gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += config.gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawReceiver() {
+            // Draw UI around mouse
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 20, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Crosshair
+            ctx.beginPath();
+            ctx.moveTo(mouseX - 30, mouseY);
+            ctx.lineTo(mouseX + 30, mouseY);
+            ctx.moveTo(mouseX, mouseY - 30);
+            ctx.lineTo(mouseX, mouseY + 30);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.stroke();
+
+            // Calculate signal strength (used for visual + audio)
+            let maxSig = 0;
+            waves.forEach(w => {
+                const d = Math.abs(Math.hypot(w.x - mouseX, w.y - mouseY) - w.radius);
+                if (d < 50) {
+                    const sig = (50 - d) / 50;
+                    if (sig > maxSig) maxSig = sig;
+                }
+            });
+
+            // Feed to Audio
+            Sounds.updateSignal(maxSig, mouseX);
+
+            // Update DOM text infrequently
+            if (time % 10 === 0) {
+                const freq = (100 + mouseX / width * 20).toFixed(2);
+                const decibels = -(10 + (1 - maxSig) * 80).toFixed(1);
+
+                document.getElementById('freq-readout').innerText = freq;
+                document.getElementById('sig-readout').innerText = decibels;
+            }
+        }
+
+        function drawSpectrum() {
+            specCtx.clearRect(0, 0, width, 100);
+            specCtx.fillStyle = 'rgba(0, 20, 10, 0.5)';
+            specCtx.fillRect(0, 0, width, 100);
+
+            specCtx.beginPath();
+            specCtx.moveTo(0, 100);
+
+            for (let x = 0; x < width; x += 5) {
+                // Combine sine waves to simulate spectrum
+                const f1 = Math.sin(x * 0.05 + time * 0.1);
+                const f2 = Math.sin(x * 0.02 - time * 0.05);
+                const noise = Math.random() * 0.2;
+
+                // Make it peak near mouse X
+                const mouseInfluence = 1 - Math.min(Math.abs(x - mouseX), 200) / 200;
+
+                const h = (f1 * 0.5 + f2 * 0.3 + noise + mouseInfluence) * 40;
+                specCtx.lineTo(x, 100 - Math.max(10, 30 + h));
+            }
+            specCtx.lineTo(width, 100);
+            specCtx.fillStyle = 'rgba(0, 255, 136, 0.2)';
+            specCtx.fill();
+
+            specCtx.strokeStyle = '#00ff88';
+            specCtx.lineWidth = 1;
+            specCtx.stroke();
+        }
+
+        function animate() {
+            time++;
+
+            // Fade out trail
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            drawGrid();
+
+            // Update Emitters
+            emitters.forEach(e => {
+                e.update();
+                e.draw(ctx);
+            });
+
+            // Update Waves
+            for (let i = waves.length - 1; i >= 0; i--) {
+                const w = waves[i];
+                w.update();
+                w.draw(ctx);
+
+                // Add particles occasionally
+                if (Math.random() > 0.9 && particles.length < 50) {
+                    particles.push(new SignalParticle(w));
+                }
+
+                if (w.alpha <= 0) {
+                    waves.splice(i, 1);
+                }
+            }
+
+            // Update Particles
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw(ctx);
+                if (p.wave.alpha <= 0) particles.splice(index, 1);
+            });
+
+            drawReceiver();
+            drawSpectrum();
+
+            requestAnimationFrame(animate);
+        }
+
+        // Interactions
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        window.addEventListener('mousedown', () => {
+            // Init Audio if not already
+            Sounds.init();
+            // Burst from mouse
+            waves.push(new Wave(mouseX, mouseY));
+            Sounds.burst();
+        });
+
+        // Initialize
+        resize();
+        animate();
+
+    </script>
+</body>
+
+</html>

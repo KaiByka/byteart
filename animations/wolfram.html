@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolfram: Abstraction</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            color: #d04040;
+            /* Wolfram Red-ish */
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        h1 {
+            font-size: 14px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        .sub {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="ui">
+        <h1>Computational Universe</h1>
+        <div class="sub">Rule 30 // Hypergraph // Evolution</div>
+    </div>
+    <canvas id="c"></canvas>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let time = 0;
+
+        // --- Cellular Automata (Rule 30) - Live Evolution ---
+        let caHistory = []; // Buffer of rows
+        let caCols;
+        let caMaxRows;
+        const cellSize = 4;
+
+        function initCA() {
+            caCols = Math.ceil(width / cellSize);
+            caMaxRows = Math.ceil(height / cellSize) + 2;
+            caHistory = [];
+
+            // Initial Seed
+            const firstRow = new Array(caCols).fill(0);
+            firstRow[Math.floor(caCols / 2)] = 1;
+            caHistory.push(firstRow);
+        }
+
+        function evolveCA() {
+            const prev = caHistory[caHistory.length - 1];
+            const next = new Array(caCols).fill(0);
+
+            for (let x = 0; x < caCols; x++) {
+                const left = x === 0 ? 0 : prev[x - 1];
+                const center = prev[x];
+                const right = x === caCols - 1 ? 0 : prev[x + 1];
+
+                // Rule 30: left XOR (center OR right)
+                next[x] = (left ^ (center | right)) ? 1 : 0;
+            }
+
+            if (Math.random() > 0.99) {
+                const bit = Math.floor(Math.random() * caCols);
+                next[bit] = 1 - next[bit];
+            }
+
+            caHistory.push(next);
+            if (caHistory.length > caMaxRows) {
+                caHistory.shift();
+            }
+        }
+
+        // --- Spikey Geometry (Rhombic Hexecontahedron) ---
+        let polys = [];
+        let vertices = [];
+
+        function initGeo() {
+            vertices = [];
+            polys = [];
+            let vertMap = new Map();
+
+            // Helper to add unique vertex
+            let padd = (x, y, z, type) => {
+                // Normalize
+                let l = Math.sqrt(x * x + y * y + z * z);
+                let p = { x: x / l, y: y / l, z: z / l };
+
+                // Scale radii for aesthetics
+                let radius = 1.0;
+                if (type === 'saddle') radius = 1.05;
+                if (type === 'tip') radius = 1.5;
+
+                p.x *= radius; p.y *= radius; p.z *= radius;
+                p.ox = p.x; p.oy = p.y; p.oz = p.z;
+                p.type = type;
+
+                // Quantized key for dedup
+                let key = Math.floor(p.x * 1000) + ',' + Math.floor(p.y * 1000) + ',' + Math.floor(p.z * 1000);
+                if (vertMap.has(key)) return vertMap.get(key);
+
+                let idx = vertices.length;
+                vertices.push(p);
+                vertMap.set(key, idx);
+                return idx;
+            };
+
+            const phi = (1 + Math.sqrt(5)) / 2;
+
+            // 1. Base Icosahedron Vertices
+            let icosaRaw = [];
+            icosaRaw.push([0, 1, phi], [0, -1, phi], [0, 1, -phi], [0, -1, -phi]);
+            icosaRaw.push([1, phi, 0], [-1, phi, 0], [1, -phi, 0], [-1, -phi, 0]);
+            icosaRaw.push([phi, 0, 1], [-phi, 0, 1], [phi, 0, -1], [-phi, 0, -1]);
+
+            let icoIndices = icosaRaw.map(v => padd(v[0], v[1], v[2], 'valley'));
+
+            // 2. Build Faces
+            for (let i = 0; i < icoIndices.length; i++) {
+                for (let j = i + 1; j < icoIndices.length; j++) {
+                    for (let k = j + 1; k < icoIndices.length; k++) {
+                        let i1 = icoIndices[i];
+                        let i2 = icoIndices[j];
+                        let i3 = icoIndices[k];
+                        let v1 = vertices[i1];
+                        let v2 = vertices[i2];
+                        let v3 = vertices[i3];
+
+                        let d12 = Math.hypot(v1.x - v2.x, v1.y - v2.y, v1.z - v2.z);
+                        let d23 = Math.hypot(v2.x - v3.x, v2.y - v3.y, v2.z - v3.z);
+                        let d31 = Math.hypot(v3.x - v1.x, v3.y - v1.y, v3.z - v1.z);
+
+                        // Neighbor check (~1.05 for normalized)
+                        if (d12 < 1.2 && d23 < 1.2 && d31 < 1.2) {
+                            // Face Center -> Tip
+                            let cx = v1.x + v2.x + v3.x;
+                            let cy = v1.y + v2.y + v3.y;
+                            let cz = v1.z + v2.z + v3.z;
+                            let tipIdx = padd(cx, cy, cz, 'tip');
+
+                            // Edge Centers -> Saddles
+                            let s12 = padd(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, 'saddle');
+                            let s23 = padd(v2.x + v3.x, v2.y + v3.y, v2.z + v3.z, 'saddle');
+                            let s31 = padd(v3.x + v1.x, v3.y + v1.y, v3.z + v1.z, 'saddle');
+
+                            // Quads (Rhombi)
+                            polys.push([tipIdx, s12, i2, s23]);
+                            polys.push([tipIdx, s23, i3, s31]);
+                            polys.push([tipIdx, s31, i1, s12]);
+                        }
+                    }
+                }
+            }
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initCA();
+            initGeo();
+        }
+
+        function project(p, rot) {
+            let x = p.x;
+            let y = p.y;
+            let z = p.z;
+
+            // Rotation
+            let tx, ty, tz;
+            // Y 
+            tx = x * Math.cos(rot.y) - z * Math.sin(rot.y);
+            tz = x * Math.sin(rot.y) + z * Math.cos(rot.y);
+            x = tx; z = tz;
+            // X 
+            ty = y * Math.cos(rot.x) - z * Math.sin(rot.x);
+            tz = y * Math.sin(rot.x) + z * Math.cos(rot.x);
+            y = ty; z = tz;
+
+            const scale = 140;
+            const perspective = 400;
+            const factor = perspective / (perspective + z);
+
+            return {
+                x: width / 2 + x * scale * factor,
+                y: height / 2 + y * scale * factor,
+                z: z,
+                scale: factor
+            };
+        }
+
+        function animate() {
+            time++;
+            ctx.fillStyle = '#110505';
+            ctx.fillRect(0, 0, width, height);
+
+            // 1. Evolve CA (Slower)
+            if (time % 8 === 0) {
+                evolveCA();
+            }
+
+            // 2. Draw CA
+            ctx.fillStyle = 'rgba(255, 60, 60, 0.12)';
+            ctx.beginPath();
+
+            for (let y = 0; y < caHistory.length; y++) {
+                const row = caHistory[y];
+                let drawY = y * cellSize;
+                for (let x = 0; x < caCols; x++) {
+                    if (row[x] === 1) {
+                        ctx.rect(x * cellSize, drawY, cellSize, cellSize);
+                    }
+                }
+            }
+            ctx.fill();
+
+            // 3. Spikey Geometry
+            const cycleSpeed = 0.02;
+            const cycle = (time * cycleSpeed) % (Math.PI * 2);
+            const explodePhase = Math.sin(cycle);
+
+            let explodeAmt = 0;
+            if (explodePhase > 0.8) {
+                explodeAmt = (explodePhase - 0.8) * 15;
+            }
+
+            vertices.forEach((v, i) => {
+                const noise = Math.sin(time * 0.1 + i * 0.9) * 0.01;
+
+                const isTip = v.type === 'tip';
+                const breathe = isTip ? Math.sin(time * 0.05) * 0.1 : 0;
+                const randomShatter = (Math.sin(i * 132.1) + 1.2);
+                const displacement = explodeAmt * randomShatter;
+
+                const mult = 1 + noise + breathe + displacement;
+                v.x = v.ox * mult;
+                v.y = v.oy * mult;
+                v.z = v.oz * mult;
+            });
+
+            const rot = { x: time * 0.008, y: time * 0.012 };
+            const projVerts = vertices.map(v => project(v, rot));
+
+            ctx.lineWidth = 1;
+            ctx.lineJoin = 'round';
+
+            // Z-Sort Painter's Algo
+            let sortedPolys = polys.map(pIndices => {
+                let z = 0;
+                pIndices.forEach(idx => z += projVerts[idx].z);
+                return { indices: pIndices, z: z / 4 };
+            }).sort((a, b) => b.z - a.z);
+
+            sortedPolys.forEach(poly => {
+                const pts = poly.indices.map(i => projVerts[i]);
+
+                ctx.beginPath();
+                ctx.moveTo(pts[0].x, pts[0].y);
+                ctx.lineTo(pts[1].x, pts[1].y);
+                ctx.lineTo(pts[2].x, pts[2].y);
+                ctx.lineTo(pts[3].x, pts[3].y);
+                ctx.closePath();
+
+                // Red Fill
+                const flash = explodeAmt > 0.1 ? 50 : 0;
+                ctx.fillStyle = `rgba(${160 + flash}, 30, 30, 0.4)`;
+                ctx.fill();
+
+                // Stroke
+                const r = 255;
+                const g = 80 + explodeAmt * 100;
+                const b = 80 + explodeAmt * 100;
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.6)`;
+                ctx.stroke();
+            });
+
+            // 4. Code Fragments
+            if (Math.random() > 0.98) {
+                const symbols = ['Rule30', 'Spikey', '#', '&', '/@', '//.', '@@', '<| |>'];
+                const s = symbols[Math.floor(Math.random() * symbols.length)];
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.font = '14px monospace';
+                ctx.fillText(s, x, y);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+
+</html>

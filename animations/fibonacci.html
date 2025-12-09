@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fibonacci: The Divine Proportion</title>
+    <style>
+        body {
+            background: #080808;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #d4af37;
+            /* Gold */
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .info {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            color: #d4af37;
+            padding: 8px 16px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: #d4af37;
+        }
+
+        button.active {
+            background: #d4af37;
+            color: #000;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui">
+        <h1>Phyllotaxis</h1>
+        <div class="info">
+            Angle: <span id="angle-val" class="highlight">137.5</span>&deg;<br>
+            Mode: <span id="mode-val">Golden Ratio</span><br>
+            Points: <span id="points-val">0</span>
+        </div>
+    </div>
+
+    <div id="controls">
+        <button id="btn-golden" class="active">Golden Ratio</button>
+        <button id="btn-drift">Drift Analysis</button>
+        <button id="btn-breath">Living Spiral</button>
+    </div>
+
+    <canvas id="c"></canvas>
+
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let points = [];
+        let numPoints = 2500;
+        let scaling = 8;
+
+        // Parameters
+        const GOLDEN_ANGLE = 137.5077640500378546463487;
+        let angle = GOLDEN_ANGLE;
+        let targetAngle = GOLDEN_ANGLE;
+
+        let mode = 'golden'; // 'golden', 'drift', 'breath', 'manual'
+        let time = 0;
+
+        // Interaction
+        let isDragging = false;
+        let lastMouseX = 0;
+        let manualAngle = GOLDEN_ANGLE;
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        canvas.addEventListener('mousedown', e => {
+            isDragging = true;
+            mode = 'manual';
+            manualAngle = angle;
+            updateButtons(''); // Deselect buttons
+            lastMouseX = e.clientX;
+            document.getElementById('mode-val').innerText = "Manual Control (Drag)";
+        });
+
+        window.addEventListener('mouseup', () => isDragging = false);
+
+        window.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastMouseX;
+            lastMouseX = e.clientX;
+
+            // Fine control
+            manualAngle += dx * 0.005;
+            targetAngle = manualAngle;
+            angle = manualAngle;
+        });
+
+        function drawPoint(n, currentAngle) {
+            // Formula: r = c * sqrt(n)
+            // theta = n * angle
+
+            const r = scaling * Math.sqrt(n);
+            const a = n * (currentAngle * Math.PI / 180);
+
+            const x = width / 2 + r * Math.cos(a);
+            const y = height / 2 + r * Math.sin(a);
+
+            // Cull offscreen
+            if (x < -50 || x > width + 50 || y < -50 || y > height + 50) return;
+
+            const distRatio = r / (Math.min(width, height) / 2);
+            let size = 2 + (r / 300);
+            if (size > 6) size = 6;
+
+            // Color logic
+            ctx.beginPath();
+
+            if (mode === 'breath') {
+                // Pulsing color shift
+                const hue = (n * 0.5 + time) % 360;
+                ctx.fillStyle = `hsla(${hue}, 70%, 50%, 0.9)`;
+            } else {
+                // Standard Gold/Teal gradient
+                // Hue range 30 (Gold) to 180 (Teal)
+                const hue = 30 + distRatio * 150;
+
+                let alpha = 0.9;
+
+                // If not golden angle, color helps visualize alignment (spokes)
+                if (Math.abs(currentAngle - GOLDEN_ANGLE) > 0.1) {
+                    const hue2 = (n % 13) * 25; // Modulo to show arms
+                    ctx.fillStyle = `hsla(${hue2}, 80%, 60%, 0.8)`;
+                } else {
+                    ctx.fillStyle = `hsla(${hue}, 80%, 55%, ${alpha})`;
+                }
+            }
+
+            // Glow effect?
+            ctx.shadowBlur = 0;
+            // Add glow to central points or random ones for "sparkle"
+
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawSpiralArms() {
+            // Visualize the 13 and 21 parastichies when near Golden Ratio
+            if (Math.abs(angle - GOLDEN_ANGLE) > 0.5) return;
+
+            ctx.lineWidth = 1;
+            const cutoff = 400; // Limit lines to center
+
+            // 13-spirals (Cyan-ish hint)
+            ctx.strokeStyle = 'rgba(0, 255, 200, 0.05)';
+            ctx.beginPath();
+            for (let n = 13; n < cutoff; n++) {
+                let r1 = scaling * Math.sqrt(n);
+                let a1 = n * (angle * Math.PI / 180);
+
+                let r2 = scaling * Math.sqrt(n - 13);
+                let a2 = (n - 13) * (angle * Math.PI / 180);
+
+                ctx.moveTo(width / 2 + r1 * Math.cos(a1), height / 2 + r1 * Math.sin(a1));
+                ctx.lineTo(width / 2 + r2 * Math.cos(a2), height / 2 + r2 * Math.sin(a2));
+            }
+            ctx.stroke();
+
+            // 21-spirals (Gold hint)
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.08)';
+            ctx.beginPath();
+            for (let n = 21; n < cutoff; n++) {
+                let r1 = scaling * Math.sqrt(n);
+                let a1 = n * (angle * Math.PI / 180);
+
+                let r2 = scaling * Math.sqrt(n - 21);
+                let a2 = (n - 21) * (angle * Math.PI / 180);
+
+                ctx.moveTo(width / 2 + r1 * Math.cos(a1), height / 2 + r1 * Math.sin(a1));
+                ctx.lineTo(width / 2 + r2 * Math.cos(a2), height / 2 + r2 * Math.sin(a2));
+            }
+            ctx.stroke();
+        }
+
+        function animate() {
+            time++;
+
+            // Clear
+            ctx.fillStyle = '#080808';
+            ctx.fillRect(0, 0, width, height);
+
+            // Logic
+            if (mode === 'drift') {
+                const phase = Math.sin(time * 0.002);
+                targetAngle = 137.5 + phase * 0.5;
+                document.getElementById('mode-val').innerText = "Drifting (" + targetAngle.toFixed(4) + ")";
+                angle += (targetAngle - angle) * 0.05;
+            } else if (mode === 'breath') {
+                targetAngle = GOLDEN_ANGLE;
+                scaling = 8 + Math.sin(time * 0.05) * 2;
+                document.getElementById('mode-val').innerText = "Breathing";
+                angle += (targetAngle - angle) * 0.05;
+            } else if (mode === 'golden') {
+                targetAngle = GOLDEN_ANGLE;
+                scaling = scaling + (8 - scaling) * 0.05;
+                document.getElementById('mode-val').innerText = "Golden Ratio";
+                angle += (targetAngle - angle) * 0.05;
+            }
+            // Manual mode preserves 'angle' set by mousemove
+
+            document.getElementById('angle-val').innerText = angle.toFixed(5);
+            document.getElementById('points-val').innerText = numPoints;
+
+            // Draw Structure
+            drawSpiralArms();
+
+            // Draw Points
+            for (let i = 0; i < numPoints; i++) {
+                drawPoint(i, angle);
+            }
+
+            // Hint
+            if (time < 400 && mode !== 'manual') {
+                ctx.fillStyle = `rgba(255,255,255,${1 - time / 400})`;
+                ctx.font = '12px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText("Click & Drag horizontally to explore chaos vs order", width / 2, height - 80);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Controls
+        document.getElementById('btn-golden').onclick = () => {
+            mode = 'golden';
+            updateButtons('btn-golden');
+        };
+        document.getElementById('btn-drift').onclick = () => {
+            mode = 'drift';
+            updateButtons('btn-drift');
+        };
+        document.getElementById('btn-breath').onclick = () => {
+            mode = 'breath';
+            updateButtons('btn-breath');
+        };
+
+        function updateButtons(activeId) {
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            if (activeId) document.getElementById(activeId).classList.add('active');
+        }
+
+        window.addEventListener('resize', init);
+
+        init();
+        animate();
+
+    </script>
+</body>
+
+</html>

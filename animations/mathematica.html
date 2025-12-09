@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MATHEMATICA: Parametric Beauty</title>
+    <!-- Computer Modern Font for that "LaTeX" look -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            color: #e0e0e0;
+            font-family: 'Times New Roman', serif;
+            /* Fallback for "Math" feel */
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            z-index: 10;
+            top: 40px;
+            left: 40px;
+            pointer-events: none;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-left: 2px solid #fff;
+            backdrop-filter: blur(5px);
+        }
+
+        h1 {
+            font-weight: normal;
+            font-style: italic;
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+            letter-spacing: 2px;
+        }
+
+        .formula-box {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            margin-top: 10px;
+            color: #aaa;
+        }
+
+        .var-value {
+            color: #00ffff;
+            font-weight: bold;
+        }
+
+        .description {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #666;
+            max-width: 300px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="container">
+        <canvas id="bgCanvas"></canvas>
+        <canvas id="mainCanvas"></canvas>
+
+        <div id="ui-layer">
+            <h1>Mathematica</h1>
+            <div class="description">
+                Exploring the topology of <strong>Maurer Roses</strong>.
+                Visualizing <span style="font-style: italic;">r = sin(n&theta;)</span> connected by step <span
+                    style="font-style: italic;">d</span>.
+            </div>
+            <div class="formula-box">
+                n = <span id="n-val" class="var-value">0.00</span><br>
+                d = <span id="d-val" class="var-value">0</span>&deg;
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const mainCanvas = document.getElementById('mainCanvas');
+        const bgCanvas = document.getElementById('bgCanvas');
+        const ctx = mainCanvas.getContext('2d');
+        const bgCtx = bgCanvas.getContext('2d');
+
+        let width, height;
+        let time = 0;
+
+        // Maurer Rose Parameters
+        let n = 2;  // The "petals" factor
+        let d = 29; // The step degrees
+
+        // Target values for smooth transition
+        let targetN = 6;
+        let targetD = 71;
+
+        // Math Symbols for Background
+        const symbols = ['∫', '∑', '∏', '∂', '∇', '∆', '∞', 'π', 'θ', 'λ', 'φ', '≈', '≠', '√'];
+        const particles = [];
+
+        class SymbolParticle {
+            constructor() {
+                this.reset();
+                this.y = Math.random() * height; // Start anywhere initially
+            }
+
+            reset() {
+                this.x = Math.random() * width;
+                this.y = height + 50;
+                this.char = symbols[Math.floor(Math.random() * symbols.length)];
+                this.size = Math.random() * 20 + 10;
+                this.speed = Math.random() * 1 + 0.2;
+                this.opacity = Math.random() * 0.3 + 0.05;
+            }
+
+            update() {
+                this.y -= this.speed;
+                if (this.y < -50) this.reset();
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = `rgba(100, 100, 150, ${this.opacity})`;
+                ctx.font = `${this.size}px serif`;
+                ctx.fillText(this.char, this.x, this.y);
+            }
+        }
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+
+            mainCanvas.width = width;
+            mainCanvas.height = height;
+            bgCanvas.width = width;
+            bgCanvas.height = height;
+
+            // Re-init particles
+            particles.length = 0;
+            for (let i = 0; i < 50; i++) {
+                particles.push(new SymbolParticle());
+            }
+        }
+
+        function drawMaurerRose(ctx, n, d) {
+            ctx.translate(width / 2, height / 2);
+
+            const scale = Math.min(width, height) * 0.4;
+
+            // 1. Draw the basic Rose curve (Guide)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(50, 50, 80, 0.5)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 360; i++) {
+                const k = i * Math.PI / 180;
+                const r = Math.sin(n * k) * scale;
+                const x = r * Math.cos(k);
+                const y = r * Math.sin(k);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 2. Draw the Maurer Rose (The connecting lines)
+            ctx.beginPath();
+            // Colors! Let's make it iridescent
+            // We can't efficiently change strokeStyle mid-path for performance in a single path
+            // But we can break it up or use a single cool color
+
+            ctx.strokeStyle = 'rgba(0, 255, 200, 0.4)';
+            if (n % 2 !== 0) ctx.strokeStyle = 'rgba(255, 100, 200, 0.4)';
+
+            ctx.lineWidth = 0.8;
+
+            for (let i = 0; i <= 360; i++) {
+                const k = i * d * Math.PI / 180;
+                const r = Math.sin(n * k) * scale;
+                const x = r * Math.cos(k);
+                const y = r * Math.sin(k);
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 3. Highlight Vertices
+            /*
+            ctx.fillStyle = '#fff';
+            for (let i = 0; i <= 360; i+=2) {
+                const k = i * d * Math.PI / 180;
+                const r = Math.sin(n * k) * scale;
+                const x = r * Math.cos(k);
+                const y = r * Math.sin(k);
+                ctx.fillRect(x-1, y-1, 2, 2);
+            }
+            */
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+        }
+
+        let holdTimer = 0;
+        let state = 'morphing'; // 'morphing' or 'holding'
+
+        function animate() {
+            time++;
+
+            // Clear
+            ctx.clearRect(0, 0, width, height);
+            bgCtx.clearRect(0, 0, width, height);
+
+            // Draw Background
+            particles.forEach(p => {
+                p.update();
+                p.draw(bgCtx);
+            });
+
+            // Logic for params
+            if (state === 'morphing') {
+                // Smoothly interpolate current -> target
+                const diffN = targetN - n;
+                const diffD = targetD - d;
+
+                n += diffN * 0.01;
+                d += diffD * 0.01;
+
+                // Determine if close enough
+                if (Math.abs(diffN) < 0.01 && Math.abs(diffD) < 0.1) {
+                    state = 'holding';
+                    holdTimer = 150; // hold for ~2.5 seconds
+                }
+            } else {
+                holdTimer--;
+                if (holdTimer <= 0) {
+                    state = 'morphing';
+                    // Pick new random targets
+                    // n typically 1..10
+                    // d typically 1..180
+                    targetN = Math.floor(Math.random() * 8) + 1;
+                    targetD = Math.floor(Math.random() * 180) + 1;
+
+                    // Specific cool combinations override random sometimes
+                    if (Math.random() > 0.7) {
+                        const coolPairs = [[6, 71], [2, 29], [5, 97], [4, 31], [7, 19]];
+                        const pair = coolPairs[Math.floor(Math.random() * coolPairs.length)];
+                        targetN = pair[0];
+                        targetD = pair[1];
+                    }
+                }
+            }
+
+            // Update UI
+            document.getElementById('n-val').innerText = n.toFixed(3);
+            document.getElementById('d-val').innerText = Math.floor(d).toString();
+
+            // Draw
+            drawMaurerRose(ctx, n, d);
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+
+    </script>
+</body>
+
+</html>
