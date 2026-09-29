@@ -262,6 +262,7 @@ window.addEventListener('resize', () => {
 const modal = document.getElementById('term-modal');
 const termBody = document.getElementById('term-body');
 const closeBtn = document.getElementById('close-btn');
+const termTitle = document.getElementById('term-title');
 
 let lastFocused = null;
 
@@ -324,6 +325,7 @@ document.querySelectorAll('.src-btn').forEach(btn => {
         const url = btn.dataset.src;
 
         // Open Modal
+        termTitle.innerText = 'SOURCE_CODE_VIEWER // V1.0';
         openModal();
         termBody.innerText = "FETCHING SOURCE DATA...\nDownloading " + url + "...";
 
@@ -364,6 +366,53 @@ modal.addEventListener('keydown', e => {
         ? (idx <= 0 ? focusables[focusables.length - 1] : focusables[idx - 1])
         : (idx === focusables.length - 1 ? focusables[0] : focusables[idx + 1]);
     next.focus();
+});
+
+// --- 5b. ABOUT / MANIFESTO ---
+const ABOUT_TEXT = [
+    "BYTEART // ARCHIVE",
+    "================================",
+    "",
+    "12 experiments in generative computation.",
+    "Every one runs on real mathematics",
+    "or physics, not effects:",
+    "",
+    "Lorenz's strange attractor.",
+    "Stam's stable fluids.",
+    "Gray-Scott morphogenesis.",
+    "Reynolds flocking.",
+    "And eight more.",
+    "",
+    "No frameworks. No dependencies.",
+    "No tracking, no cookies, no logs.",
+    "Just canvas, math, and curiosity.",
+    "",
+    "Every experiment ships its source:",
+    "hover a card, press [SRC].",
+    "",
+    "================================",
+    "BUILT BY KAIKYKA // GPL-3.0"
+].join("\n");
+
+const aboutToggle = document.getElementById('about-toggle');
+
+function openAbout() {
+    termTitle.innerText = 'ARCHIVE.SYS // MANIFESTO';
+    openModal();
+    termBody.innerText = ABOUT_TEXT;
+}
+
+aboutToggle.addEventListener('click', e => {
+    e.stopPropagation();
+    openAbout();
+});
+
+aboutToggle.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        openAbout();
+    }
 });
 
 // --- 6. BOOT SEQUENCE ---

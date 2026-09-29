@@ -85,17 +85,20 @@ aside {
     margin-bottom: 4px;
 }
 
-/* AUDIO TOGGLE */
-.audio-block {
+/* AUDIO & ABOUT TOGGLES */
+.audio-block,
+.about-block {
     cursor: pointer;
     user-select: none;
 }
 
-.audio-block:hover {
+.audio-block:hover,
+.about-block:hover {
     background: #111;
 }
 
-.audio-block:focus-visible {
+.audio-block:focus-visible,
+.about-block:focus-visible {
     outline: 1px solid var(--fg);
     outline-offset: -1px;
 }

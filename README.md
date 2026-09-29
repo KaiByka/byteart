@@ -24,6 +24,7 @@ A hidden screensaver (`animations/dream.html`, hex "rain") starts after 30 secon
 ## Interface
 
 - Terminal-styled source viewer: hover a card and click `[SRC]` to read the experiment's JavaScript inline, no navigation needed.
+- ABOUT block in the sidebar opens a project manifesto in the same terminal window.
 - Interface sound effects (WebAudio) can be muted from the AUDIO block in the sidebar; the preference is persisted in `localStorage`.
 - `prefers-reduced-motion` is respected: the boot sequence, glitch scramble, hover delays, and screensaver are disabled when the OS requests reduced motion.
 - Fonts are self-hosted (`assets/fonts/`), so the site makes no third-party requests: it stores no cookies and keeps no logs.
