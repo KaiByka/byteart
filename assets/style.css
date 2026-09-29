@@ -1,0 +1,353 @@
+/* Self-hosted fonts (variable woff2) - no third-party requests */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 900;
+    font-display: swap;
+    src: url(fonts/inter-var.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url(fonts/jbmono-var.woff2) format('woff2');
+}
+
+:root {
+    --bg: #000000;
+    --fg: #ffffff;
+    --grid: #333333;
+    --accent: #ff0000;
+    /* System Error Red */
+    --term: #00ff00;
+    /* Terminal Green */
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    overflow-x: hidden;
+}
+
+/* GRID SYSTEM */
+.container {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 100vh;
+}
+
+aside {
+    border-right: 1px solid var(--grid);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    /* Sidebar stays in view while the archive grid scrolls;
+       scrolls internally when the viewport is too short for it */
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.brand {
+    padding: 20px;
+    border-bottom: 1px solid var(--grid);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    cursor: default;
+}
+
+.meta-block {
+    padding: 20px;
+    border-bottom: 1px solid var(--grid);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.meta-block span {
+    display: block;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+/* AUDIO TOGGLE */
+.audio-block {
+    cursor: pointer;
+    user-select: none;
+}
+
+.audio-block:hover {
+    background: #111;
+}
+
+.audio-block:focus-visible {
+    outline: 1px solid var(--fg);
+    outline-offset: -1px;
+}
+
+main {
+    display: grid;
+    /* Columns flow with viewport width; cards stay ~320px+ wide */
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-auto-rows: 400px;
+}
+
+/* CARD BLOCK - Converted to DIV for dual actions */
+.block {
+    border-right: 1px solid var(--grid);
+    border-bottom: 1px solid var(--grid);
+    padding: 30px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-decoration: none;
+    color: var(--fg);
+    transition: all 0.1s linear;
+    background: var(--bg);
+    cursor: pointer;
+}
+
+.block:hover {
+    background: var(--fg);
+    color: var(--bg);
+}
+
+/* Keyboard focus ring (same inversion as hover, plus outline) */
+.block:focus-visible {
+    background: var(--fg);
+    color: var(--bg);
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+
+.src-btn:focus-visible {
+    outline: 1px solid currentColor;
+}
+
+.block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.header-end {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.id-tag {
+    border: 1px solid var(--grid);
+    padding: 4px 8px;
+}
+
+.block:hover .id-tag {
+    border-color: var(--bg);
+}
+
+/* SOURCE BUTTON */
+.src-btn {
+    font-size: 10px;
+    opacity: 0;
+    /* Hidden by default */
+    font-weight: bold;
+}
+
+.src-btn:hover {
+    text-decoration: underline;
+}
+
+.block:hover .src-btn {
+    opacity: 1;
+}
+
+h2 {
+    font-size: 48px;
+    margin: 0;
+    letter-spacing: -2px;
+    line-height: 0.9;
+    font-weight: 900;
+    /* Titles stay on one line; JS scales them down to fit the card */
+    white-space: nowrap;
+}
+
+p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    max-width: 280px;
+    line-height: 1.4;
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.block:hover p {
+    opacity: 1;
+}
+
+.action {
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.action::after {
+    content: ' ->';
+}
+
+/* MODAL (HEX DUMP) */
+#term-modal {
+    display: none;
+    /* Hidden */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+#term-window {
+    width: 800px;
+    height: 600px;
+    background: #000;
+    border: 1px solid var(--term);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+#term-head {
+    background: var(--term);
+    color: #000;
+    padding: 5px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+#term-body {
+    padding: 20px;
+    flex: 1;
+    overflow: auto;
+    color: var(--term);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    white-space: pre;
+}
+
+#close-btn {
+    cursor: pointer;
+}
+
+/* BOOT SEQUENCE OVERLAY */
+#boot {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+#boot-log {
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+    .block {
+        transition: none;
+    }
+
+    #term-modal {
+        backdrop-filter: none;
+    }
+
+    #boot {
+        display: none;
+    }
+}
+
+/* Mobile */
+@media (max-width: 800px) {
+    .container {
+        grid-template-columns: 1fr;
+    }
+
+    aside {
+        border-right: none;
+        border-bottom: 1px solid var(--grid);
+        /* Sticky sidebar is desktop-only */
+        position: static;
+        height: auto;
+    }
+
+    main {
+        grid-template-columns: 100%;
+        border-left: none;
+        border-top: 1px solid var(--grid);
+        /* Ensure separation if needed, though aside has bottom */
+    }
+
+    h2 {
+        font-size: 32px;
+    }
+
+    #term-window {
+        width: 95%;
+        height: 80%;
+    }
+}

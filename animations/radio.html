@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Radio Frequency Propagation</title>
     <style>
+        @font-face {
+            font-family: 'Share Tech Mono';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(../assets/fonts/sharetechmono-400.woff2) format('woff2');
+        }
+
         :root {
             --bg-color: #050505;
             --grid-color: rgba(0, 255, 136, 0.05);
@@ -90,10 +98,32 @@
             pointer-events: none;
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <style>
+        #back-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #fff;
+            background: #000;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #back-btn:hover {
+            border-color: #fff;
+        }
+    </style>
 </head>
 
 <body>
+    <a id="back-btn" href="../index.html">&laquo; ARCHIVE</a>
 
     <div id="canvas-container">
         <canvas id="mainCanvas"></canvas>
@@ -203,7 +233,6 @@
                     signalOsc.start();
 
                     isAudioInit = true;
-                    console.log("Audio Initialized");
 
                 } catch (e) {
                     console.error("Audio init failed", e);
