@@ -1,6 +1,6 @@
 # BYTEART // ARCHIVE
 
-Generative art archive hosted at [byteart.dev](https://byteart.dev) — a GitHub Pages site styled as a fictional operating system. Eleven canvas experiments covering physics, math, and biology simulations, all vanilla JavaScript with zero dependencies.
+Generative art archive hosted at [byteart.dev](https://byteart.dev) — a GitHub Pages site styled as a fictional operating system. Twelve canvas experiments covering physics, math, and biology simulations, all vanilla JavaScript with zero dependencies.
 
 ## Experiments
 
@@ -17,6 +17,7 @@ Generative art archive hosted at [byteart.dev](https://byteart.dev) — a GitHub
 | EXP_09 | GRADIENT | Vector field visualization |
 | EXP_10 | RELATIVITY | E=mc² critical mass simulation |
 | EXP_11 | QUANTUM | Superposition and wave function collapse |
+| EXP_12 | BOIDS | Reynolds flocking: emergence from three rules |
 
 A hidden screensaver (`animations/dream.html`, hex "rain") starts after 30 seconds of inactivity.
 

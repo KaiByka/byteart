@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Emergence: Boids Flocking</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #050505;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            mix-blend-mode: exclusion;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .sub {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="../favicon.png">
+    <style>
+        #back-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #fff;
+            background: #000;
+            border: 1px solid #333;
+            padding: 8px 12px;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #back-btn:hover {
+            border-color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <a id="back-btn" href="../index.html">&laquo; ARCHIVE</a>
+    <div id="ui">
+        <h1>Emergence</h1>
+        <div class="sub">REYNOLDS FLOCKING (1986)</div>
+        <div class="sub">RULES: SEPARATION / ALIGNMENT / COHESION</div>
+        <div class="sub">POPULATION: <span id="pop-val">0</span> // LEADERS: 0</div>
+    </div>
+    <canvas id="c"></canvas>
+    <script>
+        const canvas = document.getElementById('c');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let time = 0;
+
+        // --- Reynolds Boids ---
+        // Three local rules per boid; the flock is nobody's plan.
+        const MAX_SPEED = 4;
+        const MAX_FORCE = 0.12;
+        const PERCEPTION = 70;  // neighbor radius (px)
+        const SEP_RADIUS = 24;  // personal space (px)
+        const W_ALIGN = 1.6;
+        const W_COHESION = 1.0;
+        const W_SEPARATION = 1.5;
+        const W_FEAR = 3.0;     // predator (mouse) weight
+        const TURN = 0.08;      // edge avoidance force
+        const MARGIN = 40;
+
+        const START_POP = 220;
+        const MAX_POP = 500;
+
+        let boids = [];
+        let mouseX = 0, mouseY = 0;
+        let mouseActive = false;
+
+        class Boid {
+            constructor(x, y) {
+                const a = Math.random() * Math.PI * 2;
+                this.x = x;
+                this.y = y;
+                this.vx = Math.cos(a) * MAX_SPEED * 0.5;
+                this.vy = Math.sin(a) * MAX_SPEED * 0.5;
+            }
+
+            update() {
+                let sepX = 0, sepY = 0;
+                let aliX = 0, aliY = 0;
+                let cohX = 0, cohY = 0;
+                let neighbors = 0, sepNeighbors = 0;
+
+                // O(n^2) neighbor scan; fine at this population
+                for (let i = 0; i < boids.length; i++) {
+                    const other = boids[i];
+                    if (other === this) continue;
+
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
+                    const d2 = dx * dx + dy * dy;
+
+                    if (d2 < PERCEPTION * PERCEPTION) {
+                        neighbors++;
+                        aliX += other.vx;
+                        aliY += other.vy;
+                        cohX += other.x;
+                        cohY += other.y;
+
+                        // Separation: inverse-square repulsion
+                        if (d2 < SEP_RADIUS * SEP_RADIUS && d2 > 0) {
+                            const inv = 1 / d2;
+                            sepX -= dx * inv;
+                            sepY -= dy * inv;
+                            sepNeighbors++;
+                        }
+                    }
+                }
+
+                let ax = 0, ay = 0;
+
+                // Alignment: steer toward average heading of neighbors
+                if (neighbors > 0) {
+                    let sx = (aliX / neighbors) - this.vx;
+                    let sy = (aliY / neighbors) - this.vy;
+                    [sx, sy] = limitForce(sx, sy);
+                    ax += sx * W_ALIGN;
+
+                    // Cohesion: steer toward center of mass of neighbors
+                    let cx = (cohX / neighbors) - this.x;
+                    let cy = (cohY / neighbors) - this.y;
+                    cx = cx / PERCEPTION * MAX_SPEED - this.vx;
+                    cy = cy / PERCEPTION * MAX_SPEED - this.vy;
+                    [cx, cy] = limitForce(cx, cy);
+                    ax += cx * W_COHESION;
+                }
+
+                // Separation: steer away from crowding
+                if (sepNeighbors > 0) {
+                    let fx = (sepX / sepNeighbors) * 100 - this.vx;
+                    let fy = (sepY / sepNeighbors) * 100 - this.vy;
+                    [fx, fy] = limitForce(fx, fy);
+                    ax += fx * W_SEPARATION;
+                }
+
+                // Predator: flee the cursor
+                if (mouseActive) {
+                    const dx = this.x - mouseX;
+                    const dy = this.y - mouseY;
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < 150 * 150) {
+                        const d = Math.sqrt(d2) || 1;
+                        let fx = (dx / d) * MAX_SPEED - this.vx;
+                        let fy = (dy / d) * MAX_SPEED - this.vy;
+                        [fx, fy] = limitForce(fx, fy);
+                        ax += fx * W_FEAR;
+                    }
+                }
+
+                // Edges: soft turn back
+                if (this.x < MARGIN) ax += TURN;
+                if (this.x > width - MARGIN) ax -= TURN;
+                if (this.y < MARGIN) ay += TURN;
+                if (this.y > height - MARGIN) ay -= TURN;
+
+                // Integrate
+                this.vx += ax;
+                this.vy += ay;
+
+                // Clamp speed: boids neither stop nor teleport
+                const speed = Math.hypot(this.vx, this.vy);
+                if (speed > MAX_SPEED) {
+                    this.vx = this.vx / speed * MAX_SPEED;
+                    this.vy = this.vy / speed * MAX_SPEED;
+                } else if (speed < MAX_SPEED * 0.4 && speed > 0) {
+                    this.vx = this.vx / speed * MAX_SPEED * 0.4;
+                    this.vy = this.vy / speed * MAX_SPEED * 0.4;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+            }
+
+            draw() {
+                const angle = Math.atan2(this.vy, this.vx);
+                const speed = Math.hypot(this.vx, this.vy);
+                const ratio = (speed / MAX_SPEED - 0.4) / 0.6; // 0..1
+
+                // Slow boids dim blue, fast boids bright cyan-white
+                const g = Math.round(120 + 135 * Math.max(0, Math.min(1, ratio)));
+                const b = Math.round(150 + 105 * Math.max(0, Math.min(1, ratio)));
+                ctx.fillStyle = `rgb(40, ${g}, ${b})`;
+
+                ctx.beginPath();
+                ctx.moveTo(this.x + Math.cos(angle) * 7, this.y + Math.sin(angle) * 7);
+                ctx.lineTo(this.x + Math.cos(angle + 2.5) * 5, this.y + Math.sin(angle + 2.5) * 5);
+                ctx.lineTo(this.x + Math.cos(angle - 2.5) * 5, this.y + Math.sin(angle - 2.5) * 5);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        function limitForce(fx, fy) {
+            const mag = Math.hypot(fx, fy);
+            if (mag > MAX_FORCE && mag > 0) {
+                const s = MAX_FORCE / mag;
+                return [fx * s, fy * s];
+            }
+            return [fx, fy];
+        }
+
+        function init() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+
+            boids = [];
+            for (let i = 0; i < START_POP; i++) {
+                boids.push(new Boid(Math.random() * width, Math.random() * height));
+            }
+        }
+
+        function animate() {
+            time++;
+
+            // Trail fade
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.3)';
+            ctx.fillRect(0, 0, width, height);
+
+            boids.forEach(b => {
+                b.update();
+                b.draw();
+            });
+
+            // Predator marker
+            if (mouseActive) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(mouseX, mouseY, 150, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(mouseX, mouseY, 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+            }
+
+            if (time % 30 === 0) {
+                document.getElementById('pop-val').innerText = boids.length;
+            }
+
+            reqId = requestAnimationFrame(animate);
+        }
+
+        // Optimization: Pause when hidden
+        let reqId;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                if (reqId) cancelAnimationFrame(reqId);
+            } else {
+                animate();
+            }
+        });
+
+        // Interaction: cursor is the predator, click spawns a flock
+        window.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            mouseActive = true;
+        });
+
+        window.addEventListener('mousedown', () => {
+            for (let i = 0; i < 10 && boids.length < MAX_POP; i++) {
+                const a = Math.random() * Math.PI * 2;
+                boids.push(new Boid(mouseX + Math.cos(a) * 30, mouseY + Math.sin(a) * 30));
+            }
+        });
+
+        // Touch Support
+        window.addEventListener('touchstart', e => {
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+            mouseActive = true;
+        }, { passive: true });
+        window.addEventListener('touchmove', e => {
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+            mouseActive = true;
+            e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('resize', init);
+
+        init();
+        animate();
+    </script>
+</body>
+
+</html>
