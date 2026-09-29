@@ -21,8 +21,6 @@
     --grid: #333333;
     --accent: #ff0000;
     /* System Error Red */
-    --term: #00ff00;
-    /* Terminal Green */
 }
 
 * {
@@ -217,7 +215,7 @@ p {
     content: ' ->';
 }
 
-/* MODAL (HEX DUMP) */
+/* MODAL (SOURCE / MANIFESTO) */
 #term-modal {
     display: none;
     /* Hidden */
@@ -237,14 +235,13 @@ p {
     width: 800px;
     height: 600px;
     background: #000;
-    border: 1px solid var(--term);
+    border: 1px solid var(--fg);
     display: flex;
     flex-direction: column;
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
 }
 
 #term-head {
-    background: var(--term);
+    background: var(--fg);
     color: #000;
     padding: 5px 10px;
     font-family: 'JetBrains Mono', monospace;
@@ -258,7 +255,7 @@ p {
     padding: 20px;
     flex: 1;
     overflow: auto;
-    color: var(--term);
+    color: var(--fg);
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     white-space: pre;

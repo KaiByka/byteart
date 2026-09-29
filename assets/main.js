@@ -371,7 +371,6 @@ modal.addEventListener('keydown', e => {
 // --- 5b. ABOUT / MANIFESTO ---
 const ABOUT_TEXT = [
     "BYTEART // ARCHIVE",
-    "================================",
     "",
     "12 experiments in generative computation.",
     "Every one runs on real mathematics",
@@ -390,7 +389,6 @@ const ABOUT_TEXT = [
     "Every experiment ships its source:",
     "hover a card, press [SRC].",
     "",
-    "================================",
     "BUILT BY KAIKYKA // GPL-3.0"
 ].join("\n");
 
