@@ -168,8 +168,8 @@ document.querySelectorAll('.block').forEach(b => {
 
     // Navigation
     b.addEventListener('click', (e) => {
-        // If clicked source button, don't navigate
-        if (e.target.classList.contains('src-btn')) return;
+        // If clicked source or info button, don't navigate
+        if (e.target.classList.contains('src-btn') || e.target.classList.contains('info-btn')) return;
 
         navigateTo(b.dataset.href);
     });
@@ -399,6 +399,322 @@ function openAbout() {
     openModal();
     termBody.innerText = ABOUT_TEXT;
 }
+
+// --- 5c. EXPERIMENT INFO ---
+const EXP_INFO = {
+    singularity: {
+        title: "EXP_05 // SINGULARITY",
+        text: [
+            "RELATIVISTIC ACCRETION DISK",
+            "",
+            "A black hole of 4.3 million solar",
+            "masses (Sgr A* territory, spin",
+            "a/M = 0.98) with a particle disk.",
+            "",
+            "REAL PHYSICS:",
+            "- Lensing: point-mass deflection",
+            "  falls off as 1/distance; stars",
+            "  behind the hole get pushed",
+            "  toward the Einstein ring.",
+            "- Rotation is Keplerian: v ~ 1/sqrt(r).",
+            "- Doppler beaming: the side",
+            "  rotating toward you is brighter.",
+            "",
+            "APPROXIMATION: the halo above the",
+            "hole is a visual stand-in for the",
+            "lensed far side of the disk",
+            "(the Interstellar effect).",
+            "",
+            "PASSIVE SIMULATION. WATCH."
+        ]
+    },
+    fibonacci: {
+        title: "EXP_04 // PHYLLOTAXIS",
+        text: [
+            "PHYLLOTAXIS",
+            "",
+            "Vogel's model of sunflower seed",
+            "growth:",
+            "",
+            "    r = c * sqrt(n)",
+            "    theta = n * 137.5077 deg",
+            "",
+            "137.5077... is the golden angle",
+            "(360 / phi^2), the most irrational",
+            "angle there is - the only one that",
+            "never lines up into spokes.",
+            "",
+            "Near it, 13 and 21 spiral arms",
+            "(parastichies) emerge. Off by even",
+            "0.5 degrees, order collapses.",
+            "",
+            "DRAG LEFT/RIGHT TO EXPLORE."
+        ]
+    },
+    reaction_diffusion: {
+        title: "EXP_07 // MORPHOGENESIS",
+        text: [
+            "MORPHOGENESIS",
+            "",
+            "Gray-Scott reaction-diffusion:",
+            "two chemicals that feed on each",
+            "other. A is fed in, B is killed",
+            "off, both diffuse:",
+            "",
+            "    dA = DA*L(A) - AB^2 + f(1-A)",
+            "    dB = DB*L(B) + AB^2 - (k+f)B",
+            "",
+            "f = 0.055, k = 0.062 sits in the",
+            "'coral' region: spots grow,",
+            "compete and split like cells.",
+            "",
+            "Alan Turing predicted this class",
+            "of patterns in 1952 - they appear",
+            "on fish, zebra and coral.",
+            "",
+            "CLICK/DRAG TO INJECT CHEMICAL B."
+        ]
+    },
+    wolfram: {
+        title: "EXP_03 // RULE 30",
+        text: [
+            "RULE 30",
+            "",
+            "One of 256 elementary cellular",
+            "automata. Each cell looks at",
+            "itself and two neighbors:",
+            "",
+            "    next = left XOR (center OR right)",
+            "",
+            "From a single live cell it makes",
+            "endless chaos - Wolfram calls it",
+            "Class 3. Rule 30 is the random",
+            "number generator in Mathematica.",
+            "",
+            "The 1% random bit flips per row",
+            "are deliberate: they keep the",
+            "pattern from settling.",
+            "",
+            "THE OBJECT: a rhombic",
+            "hexecontahedron (60 rhombi built",
+            "from an icosahedron) - Wolfram's",
+            "'Spikey'.",
+            "",
+            "PASSIVE SIMULATION. WATCH."
+        ]
+    },
+    radio: {
+        title: "EXP_02 // WAVEFORM",
+        text: [
+            "RF PROPAGATION",
+            "",
+            "Three emitters pulse circular",
+            "wavefronts; your cursor is the",
+            "receiver.",
+            "",
+            "Signal strength = proximity of",
+            "the cursor to a wavefront edge.",
+            "Real audio synthesis rides on it:",
+            "",
+            "- 60 Hz mains hum (LFO wobble)",
+            "- Band-passed white noise (static)",
+            "- A sine that rises out of the",
+            "  static when a wave reaches you",
+            "",
+            "The frequency readout spans the",
+            "real FM band, 88-108 MHz. The",
+            "spectrum strip is decorative.",
+            "",
+            "MOVE TO TUNE. CLICK TO PULSE."
+        ]
+    },
+    mathematica: {
+        title: "EXP_01 // MAURER",
+        text: [
+            "MAURER ROSE",
+            "",
+            "Peter Maurer, 1987. Take a rose",
+            "curve r = sin(n*theta), mark points",
+            "every d degrees, then connect",
+            "the dots in order.",
+            "",
+            "The faint circle underneath is",
+            "the rose itself; the web is what",
+            "the connecting lines draw.",
+            "",
+            "Small integer pairs (like n=6,",
+            "d=71) produce startling knots -",
+            "the animation morphs between",
+            "random and known-good pairs.",
+            "",
+            "PASSIVE SIMULATION. WATCH."
+        ]
+    },
+    lorenz: {
+        title: "EXP_06 // LORENZ",
+        text: [
+            "THE LORENZ ATTRACTOR",
+            "",
+            "Three ODEs from Edward Lorenz,",
+            "1963 - a toy model of convection:",
+            "",
+            "    dx = 10(y - x)",
+            "    dy = x(28 - z) - y",
+            "    dz = xy - (8/3)z",
+            "",
+            "With these parameters every",
+            "trajectory orbits the two wings",
+            "forever, never repeating, never",
+            "escaping - a strange attractor.",
+            "Two starts a trillionth apart",
+            "diverge within seconds: the",
+            "butterfly effect.",
+            "",
+            "DRAG TO ROTATE."
+        ]
+    },
+    fluid: {
+        title: "EXP_08 // FLUID",
+        text: [
+            "NAVIER-STOKES, STABLY",
+            "",
+            "Jos Stam's 'Stable Fluids' (1999),",
+            "the algorithm that brought real-",
+            "time fluid to games and film:",
+            "",
+            "    diffuse -> project -> advect",
+            "",
+            "Velocity and density live on a",
+            "100x100 grid. The projection step",
+            "removes divergence so the fluid",
+            "stays incompressible; Gauss-Seidel",
+            "relaxes the pressure solve.",
+            "",
+            "DRAG TO INJECT DENSITY AND MOTION."
+        ]
+    },
+    gradient: {
+        title: "EXP_09 // GRADIENT",
+        text: [
+            "GRADIENT FIELDS",
+            "",
+            "A scalar field f(x,y): a rolling",
+            "landscape of sine waves. Each",
+            "arrow is its gradient, computed",
+            "by numerical differentiation:",
+            "",
+            "    df/dx = [f(x+h,y) - f(x,y)] / h",
+            "",
+            "Arrows point uphill - the",
+            "direction of steepest ascent.",
+            "Length and color show steepness.",
+            "",
+            "Your cursor drops a gravity well",
+            "into the landscape and the whole",
+            "field re-aims at it.",
+            "",
+            "MOVE THE MOUSE TO BEND THE FIELD."
+        ]
+    },
+    relativity: {
+        title: "EXP_10 // RELATIVITY",
+        text: [
+            "E = mc^2",
+            "",
+            "Honest disclaimer: this one is a",
+            "metaphor, not physics.",
+            "",
+            "A nucleus of particles is held",
+            "together by 'binding energy' (pull",
+            "toward center + friction). Hold",
+            "the mouse button to bombard it:",
+            "neutrons in, particles out. Escape",
+            "means matter becomes energy -",
+            "particles ignite into pure outward",
+            "speed with trails.",
+            "",
+            "The mass-energy idea is real;",
+            "the particle rules are art.",
+            "",
+            "HOLD MOUSE BUTTON TO BOMBARD."
+        ]
+    },
+    quantum: {
+        title: "EXP_11 // QUANTUM",
+        text: [
+            "SUPERPOSITION & ENTANGLEMENT",
+            "",
+            "Each cube is a qubit in",
+            "superposition: a cloud of ghost",
+            "states, jittering.",
+            "",
+            "Bring your cursor close: that is",
+            "a measurement - the qubit",
+            "collapses to |0> or |1> at random.",
+            "",
+            "Every pair is entangled: measure",
+            "one and its partner instantly",
+            "collapses to the opposite state",
+            "(the statistics of a Bell pair).",
+            "Left alone, decoherence returns",
+            "both to superposition.",
+            "",
+            "MOVE THE CURSOR TO OBSERVE."
+        ]
+    },
+    boids: {
+        title: "EXP_12 // BOIDS",
+        text: [
+            "EMERGENCE",
+            "",
+            "Craig Reynolds, 1986. Every boid",
+            "follows three local rules:",
+            "",
+            "    1. SEPARATION - keep distance",
+            "    2. ALIGNMENT  - match heading",
+            "    3. COHESION   - stay together",
+            "",
+            "Nobody is in charge, yet a flock",
+            "appears. No part of the code",
+            "contains the flock - it emerges",
+            "from the rules, the way bird",
+            "murmurations do.",
+            "",
+            "Your cursor is a predator: the",
+            "flock flees and regroups. Click",
+            "to release 10 more boids.",
+            "",
+            "MOVE TO HUNT. CLICK TO SPAWN."
+        ]
+    }
+};
+
+document.querySelectorAll('.info-btn').forEach(btn => {
+    // Keyboard access
+    btn.setAttribute('tabindex', '0');
+    btn.setAttribute('role', 'button');
+
+    function open() {
+        const info = EXP_INFO[btn.dataset.exp];
+        if (!info) return;
+        termTitle.innerText = info.title;
+        openModal();
+        termBody.innerText = info.text.join("\n");
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Don't trigger block nav
+        open();
+    });
+
+    btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            open();
+        }
+    });
+});
 
 aboutToggle.addEventListener('click', e => {
     e.stopPropagation();

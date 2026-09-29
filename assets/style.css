@@ -137,7 +137,8 @@ main {
     outline-offset: -2px;
 }
 
-.src-btn:focus-visible {
+.src-btn:focus-visible,
+.info-btn:focus-visible {
     outline: 1px solid currentColor;
 }
 
@@ -165,19 +166,22 @@ main {
     border-color: var(--bg);
 }
 
-/* SOURCE BUTTON */
-.src-btn {
+/* SOURCE & INFO BUTTONS */
+.src-btn,
+.info-btn {
     font-size: 10px;
     opacity: 0;
     /* Hidden by default */
     font-weight: bold;
 }
 
-.src-btn:hover {
+.src-btn:hover,
+.info-btn:hover {
     text-decoration: underline;
 }
 
-.block:hover .src-btn {
+.block:hover .src-btn,
+.block:hover .info-btn {
     opacity: 1;
 }
 
