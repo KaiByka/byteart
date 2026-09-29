@@ -164,28 +164,8 @@
             ctx.fillRect(0, 0, width, height);
 
             ctx.lineWidth = 1.5;
-            // ctx.lineJoin = 'round'; // Performance hit
 
-            if (points.length > 1) {
-                // To draw gradient, we need to segment.
-                // Simple batching: Draw segments
-
-                ctx.beginPath();
-                let params = project(points[0]);
-                ctx.moveTo(params.x, params.y);
-
-                // Color based on index (time) or Z?
-                // Let's do simple white for Brutalist look, or cyan?
-                // The prompt was just "Lorenz". 
-                // Let's do a color shift based on velocity or position.
-                // Hue cycling along the trail looks nice.
-
-                // Batch drawing is faster but single color.
-                // Let's do batch strokes with gradient.
-            }
-
-            // Optimized rendering: 
-            // Draw in chunks
+            // Draw the trail in chunks with an age gradient
             const chunkSize = 100;
             for (let i = 0; i < points.length - 1; i += chunkSize) {
                 const end = Math.min(i + chunkSize, points.length - 1);

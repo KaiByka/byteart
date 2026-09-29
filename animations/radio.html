@@ -132,7 +132,7 @@
 
         <div class="ui-layer">
             <h1>RF Propagation Visualizer</h1>
-            <div class="status">FREQ: <span id="freq-readout">108.00</span> MHz | SIGNAL: <span
+            <div class="status">FREQ: <span id="freq-readout">88.00</span> MHz | SIGNAL: <span
                     id="sig-readout">-</span> dB</div>
         </div>
 
@@ -502,7 +502,8 @@
 
             // Update DOM text infrequently
             if (time % 10 === 0) {
-                const freq = (100 + mouseX / width * 20).toFixed(2);
+                // FM band: 88-108 MHz
+                const freq = (88 + mouseX / width * 20).toFixed(2);
                 const decibels = -(10 + (1 - maxSig) * 80).toFixed(1);
 
                 document.getElementById('freq-readout').innerText = freq;
@@ -570,12 +571,12 @@
                 }
             }
 
-            // Update Particles
-            particles.forEach((p, index) => {
-                p.update();
-                p.draw(ctx);
-                if (p.wave.alpha <= 0) particles.splice(index, 1);
-            });
+            // Update Particles (backwards: safe splice)
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw(ctx);
+                if (particles[i].wave.alpha <= 0) particles.splice(i, 1);
+            }
 
             drawReceiver();
             drawSpectrum();

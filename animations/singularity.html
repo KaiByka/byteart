@@ -69,7 +69,7 @@
     <a id="back-btn" href="../index.html">&laquo; ARCHIVE</a>
     <div class="hud">
         <h1>Gargantua</h1>
-        <div class="data">MASS: 4.3M ☉ // SPIN: 0.98c // INFLOW: CRITICAL</div>
+        <div class="data">MASS: 4.3M ☉ // SPIN: a/M = 0.98 // INFLOW: CRITICAL</div>
     </div>
     <canvas id="c"></canvas>
 
@@ -237,26 +237,6 @@
                 ctx.beginPath();
                 ctx.arc(sx, sy, this.size, 0, Math.PI * 2);
                 ctx.fill();
-
-                // Lensed "Hump" (The back of the disk visible over the top)
-                // If pixel is BEHIND black hole (z3 > 0), simple lensing duplicate
-                if (z3 < 0) { // "Behind" in typical coord system (z negative is forward? Let's say z < 0 is behind)
-                    // Wait, standard 3D: Z+ is toward cam. 
-                    // Let's say z3 > 0 is FRONT, z3 < 0 is BACK based on sin calculation
-                    // sin(0)=0 (right), sin(90)=1 (front), sin(180)=0 (left), sin(270)=-1 (back)
-
-                    // Actually let's assume z3 > 0 is BACK for logic mapping
-                }
-
-                // Fake lensing top/bottom
-                if (z3 < 0) { // The far side
-                    // Reflect Y coord drastically to show "over the top"
-                    // The closer to center, the more it pushes out
-                    const dist2d = Math.sqrt(px * px + py * py);
-                    if (dist2d > bhRadius) { // Don't lens inside
-                        // Hard to particle-lens accurately without raytracing
-                    }
-                }
             }
         }
 

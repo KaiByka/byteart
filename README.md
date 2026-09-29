@@ -8,7 +8,7 @@ Generative art archive hosted at [byteart.dev](https://byteart.dev) — a GitHub
 |------|---------------|----------------------------------------------|
 | EXP_01 | MAURER | Parametric rose curves (Maurer) |
 | EXP_02 | WAVEFORM | Procedural audio synthesis, EM interference |
-| EXP_03 | RULE 30 | Wolfram class 4 elementary cellular automaton |
+| EXP_03 | RULE 30 | Wolfram class 3 (chaotic) elementary cellular automaton |
 | EXP_04 | PHYLLOTAXIS | Golden angle / Fibonacci spiral seeding |
 | EXP_05 | SINGULARITY | Relativistic accretion disk, Doppler beaming |
 | EXP_06 | LORENZ | Strange attractor (chaos theory) |
