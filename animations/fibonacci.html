@@ -6,11 +6,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fibonacci: The Divine Proportion</title>
     <style>
+        @font-face {
+            font-family: 'JetBrains Nerd Mono';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(../assets/fonts/jetbrains-nerd-mono-Regular.woff2) format('woff2');
+        }
+
+        @font-face {
+            font-family: 'JetBrains Nerd Mono';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url(../assets/fonts/jetbrains-nerd-mono-Bold.woff2) format('woff2');
+        }
+
         body {
             background: #080808;
             margin: 0;
             overflow: hidden;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'JetBrains Nerd Mono', monospace;
             color: #d4af37;
             /* Gold */
         }
@@ -35,7 +51,7 @@
         }
 
         .info {
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Nerd Mono', monospace;
             font-size: 12px;
             margin-top: 10px;
             opacity: 0.8;
@@ -62,7 +78,7 @@
             border: 1px solid rgba(212, 175, 55, 0.3);
             color: #d4af37;
             padding: 8px 16px;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Nerd Mono', monospace;
             cursor: pointer;
             transition: all 0.3s;
             text-transform: uppercase;
@@ -87,7 +103,7 @@
             top: 20px;
             right: 20px;
             z-index: 9999;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Nerd Mono', monospace;
             font-size: 12px;
             color: #fff;
             background: #000;
@@ -323,7 +339,7 @@
             // Hint
             if (time < 400 && mode !== 'manual') {
                 ctx.fillStyle = `rgba(255,255,255,${1 - time / 400})`;
-                ctx.font = '12px Courier New';
+                ctx.font = '12px JetBrains Nerd Mono';
                 ctx.textAlign = 'center';
                 ctx.fillText("Click & Drag horizontally to explore chaos vs order", width / 2, height - 80);
             }

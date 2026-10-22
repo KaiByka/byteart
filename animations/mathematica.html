@@ -7,6 +7,22 @@
     <title>MATHEMATICA: Parametric Beauty</title>
 
     <style>
+        @font-face {
+            font-family: 'JetBrains Nerd Mono';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(../assets/fonts/jetbrains-nerd-mono-Regular.woff2) format('woff2');
+        }
+
+        @font-face {
+            font-family: 'JetBrains Nerd Mono';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url(../assets/fonts/jetbrains-nerd-mono-Bold.woff2) format('woff2');
+        }
+
         body,
         html {
             margin: 0;
@@ -16,8 +32,7 @@
             overflow: hidden;
             background-color: #050505;
             color: #e0e0e0;
-            font-family: 'Times New Roman', serif;
-            /* Fallback for "Math" feel */
+            font-family: 'JetBrains Nerd Mono', monospace;
         }
 
         #container {
@@ -57,7 +72,7 @@
         }
 
         .formula-box {
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Nerd Mono', monospace;
             font-size: 1.2rem;
             margin-top: 10px;
             color: #aaa;
@@ -83,7 +98,7 @@
             top: 20px;
             right: 20px;
             z-index: 9999;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Nerd Mono', monospace;
             font-size: 12px;
             color: #fff;
             background: #000;
@@ -164,7 +179,7 @@
 
             draw(ctx) {
                 ctx.fillStyle = `rgba(100, 100, 150, ${this.opacity})`;
-                ctx.font = `${this.size}px serif`;
+                ctx.font = `${this.size}px 'JetBrains Nerd Mono', monospace`;
                 ctx.fillText(this.char, this.x, this.y);
             }
         }

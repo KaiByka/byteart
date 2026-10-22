@@ -5,12 +5,28 @@
     <meta charset="UTF-8">
     <title>DREAM PROTOCOL</title>
     <style>
+        @font-face {
+            font-family: 'JetBrains Nerd Mono';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url(../assets/fonts/jetbrains-nerd-mono-Regular.woff2) format('woff2');
+        }
+
+        @font-face {
+            font-family: 'JetBrains Nerd Mono';
+            font-style: normal;
+            font-weight: 700;
+            font-display: swap;
+            src: url(../assets/fonts/jetbrains-nerd-mono-Bold.woff2) format('woff2');
+        }
+
         body {
             margin: 0;
             overflow: hidden;
             background: #000;
             color: #0f0;
-            font-family: monospace;
+            font-family: 'JetBrains Nerd Mono', monospace;
         }
 
         canvas {
@@ -24,7 +40,7 @@
             top: 20px;
             right: 20px;
             z-index: 9999;
-            font-family: 'Courier New', monospace;
+            font-family: 'JetBrains Nerd Mono', monospace;
             font-size: 12px;
             color: #fff;
             background: #000;
@@ -69,7 +85,7 @@
             ctx.fillRect(0, 0, width, height);
 
             ctx.fillStyle = '#0F0';
-            ctx.font = fontSize + 'px monospace';
+            ctx.font = fontSize + 'px JetBrains Nerd Mono, monospace';
 
             for (let i = 0; i < drops.length; i++) {
                 const text = hex.charAt(Math.floor(Math.random() * hex.length));
