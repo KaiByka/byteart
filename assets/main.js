@@ -686,6 +686,33 @@ const EXP_INFO = {
             "",
             "MOVE TO HUNT. CLICK TO SPAWN."
         ]
+    },
+    infinity: {
+        title: "EXP_13 // INFINITY",
+        text: [
+            "THE FRAME WITH NO BOTTOM",
+            "",
+            "Every frame, the canvas draws itself",
+            "back into itself - slightly smaller,",
+            "slightly rotated. The image contains",
+            "the image that contains the image,",
+            "all the way down. Like the Droste",
+            "effect, or two mirrors facing each",
+            "other, the recursion never ends.",
+            "",
+            "Mathematically: an iterated affine",
+            "map with a fixed point at the",
+            "center. Self-similar at every",
+            "scale - a fractal in the time",
+            "dimension. You can watch for an",
+            "hour and never reach the deepest",
+            "copy, because there isn't one.",
+            "",
+            "DRAG to steer the spiral.",
+            "DOUBLE-CLICK to flip rotation.",
+            "",
+            "THERE IS NO LAST LAP."
+        ]
     }
 };
 
