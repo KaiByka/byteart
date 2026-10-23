@@ -110,6 +110,7 @@
         const GROWTH = 1.02;     // the past expands by this factor every frame
         const SPIN = 0.02;       // radians added every frame (the spiral twist)
         const CYCLE = 314;       // frames per full twist (2*PI/SPIN)
+        const DECAY = 0.96;      // brightness of the past each frame: prevents saturation
 
         // Interaction
         let autoRotate = true;
@@ -176,8 +177,14 @@
             time++;
             const depthEl = document.getElementById('depth');
 
-            // 1. Copy current frame to buffer
-            bctx.clearRect(0, 0, width, height);
+            // 1. Copy current frame to buffer, DIMMED. Without this
+            //    decay every frame adds fresh ink on top of the old
+            //    and the screen saturates to solid white. The decay
+            //    makes old copies fade as they drift outward, so the
+            //    tunnel stays legible at every depth.
+            bctx.globalAlpha = DECAY;
+            bctx.fillStyle = '#050505';
+            bctx.fillRect(0, 0, width, height);
             bctx.drawImage(canvas, 0, 0);
 
             // 2. Erase main
