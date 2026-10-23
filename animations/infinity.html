@@ -106,14 +106,14 @@
         let time = 0;
 
         // Zoom state
-        const SHRINK = 0.975;    // scale applied per frame: total zoom per cycle = 1/(1-s)
-        const CYCLE = 360;       // frames per full rotation
-        const NESTED = 28;       // depth of the nested redraw stack
-        const TAIL = 0.9;        // fade of the oldest copy
+        const GROWTH = 1.02;     // the past expands by this factor every frame
+        const SPIN = 0.02;       // radians added every frame (the spiral twist)
+        const CYCLE = 314;       // frames per full twist (2*PI/SPIN)
 
         // Interaction
         let autoRotate = true;
         let rotationOffset = 0;
+        let SPIN_DIR = 1;        // +1 / -1: twist handedness
 
         // Shape drift: unused hue state removed; rotation and the
         // seed glyph carry all the motion.
@@ -175,10 +175,6 @@
             time++;
             const depthEl = document.getElementById('depth');
 
-            const angle = autoRotate
-                ? rotationOffset + (time % CYCLE) * (Math.PI * 2 / CYCLE)
-                : rotationOffset;
-
             // 1. Copy current frame to buffer
             bctx.clearRect(0, 0, width, height);
             bctx.drawImage(canvas, 0, 0);
@@ -187,26 +183,29 @@
             ctx.fillStyle = '#050505';
             ctx.fillRect(0, 0, width, height);
 
-            // 3. Redraw the frame into itself, nested
-            for (let k = 0; k < NESTED; k++) {
-                const scale = Math.pow(SHRINK, k);
-                ctx.save();
-                ctx.globalAlpha = k === 0 ? 1 : Math.pow(TAIL, k / 2);
-                ctx.translate(width / 2, height / 2);
-                ctx.rotate(angle / CYCLE * 2 * Math.PI * (k % 2 === 0 ? 1 : -1) / (k + 1));
-                ctx.scale(scale, scale);
-                ctx.translate(-width / 2, -height / 2);
-                ctx.drawImage(buf, 0, 0);
-                ctx.restore();
-            }
+            // 3. THE INFINITE ZOOM: draw the previous frame back
+            //    onto the canvas, but larger and rotated around the
+            //    center. Whatever was on screen drifts outward and
+            //    grows, revealing ever more detail inside. A single
+            //    transformed copy is enough: it already contains
+            //    every earlier copy (the feedback is recursive), so
+            //    one pass per frame rebuilds the whole spiral.
+            const spin = (autoRotate ? SPIN : 0) * SPIN_DIR;
+            ctx.save();
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(spin + rotationOffset);
+            ctx.scale(GROWTH, GROWTH);
+            ctx.translate(-width / 2, -height / 2);
+            ctx.drawImage(buf, 0, 0);
+            ctx.restore();
 
             // 4. Inject fresh geometry at the center, so the deepest
             //    visible level is always the seed glyph. The loop
             //    consumes it next frame - it becomes the next ring.
-            drawGlyph(width / 2, height / 2, angle);
+            drawGlyph(width / 2, height / 2, time * spin);
 
-            // UI: after CYCLE frames the structure repeats - a full
-            // "lap" of infinity. There is no last lap.
+            // UI: after CYCLE frames the twist completes one full
+            // turn - a full "lap" of infinity. There is no last lap.
             depthEl.textContent = 'LOOP ' + Math.floor(time / CYCLE);
 
             reqId = requestAnimationFrame(loop);
@@ -225,8 +224,8 @@
         window.addEventListener('resize', init);
 
         // Interaction: drag to rotate the spiral by hand, double
-        // click to flip rotation direction. Scrolling would be the
-        // natural gesture but the page must not scroll.
+        // click to flip zoom-twist direction. Scrolling would be
+        // the natural gesture but the page must not scroll.
         let dragging = false;
         let lastX = 0;
         window.addEventListener('mousedown', e => {
@@ -236,12 +235,12 @@
         window.addEventListener('mousemove', e => {
             if (!dragging) return;
             rotationOffset += (e.clientX - lastX) * 0.01;
-            autoRotate = false;
             lastX = e.clientX;
         });
         window.addEventListener('mouseup', () => dragging = false);
         window.addEventListener('dblclick', () => {
             autoRotate = !autoRotate;
+            SPIN_DIR = -SPIN_DIR;
         });
 
         init();
